@@ -51,6 +51,63 @@ fi
 COPY routes/_sign_up_override.php /var/www/html/routes/_sign_up_override.php
 RUN printf "\n// Allow public sign up without redirecting to /login\nrequire __DIR__.'/_sign_up_override.php';\n" >> routes/web.php
 
+# Skip settings bootstrap when no DB is available (eg. during image build)
+RUN php <<'PHP'
+<?php
+$dir = __DIR__ . '/app/Providers';
+if (!is_dir($dir)) {
+    exit;
+}
+
+$iterator = new RecursiveIteratorIterator(
+    new RecursiveDirectoryIterator($dir, FilesystemIterator::SKIP_DOTS)
+);
+
+$pattern = '/(^[ \t]*)if\s*\(\s*Schema::hasTable\(\'settings\'\)\s*\)\s*(?<block>\{(?:[^{}]+|(?&block))*\})/m';
+
+foreach ($iterator as $file) {
+    if (!$file->isFile() || $file->getExtension() !== 'php') {
+        continue;
+    }
+
+    $path = $file->getPathname();
+    $code = file_get_contents($path);
+
+    if (strpos($code, "Schema::hasTable('settings')") === false) {
+        continue;
+    }
+
+    if (strpos($code, '$this->app->runningInConsole()') !== false) {
+        continue;
+    }
+
+    $newCode = preg_replace_callback($pattern, function (array $matches) {
+        $indent = $matches[1];
+        $block = $matches[0];
+
+        $indentPattern = '/^' . preg_quote($indent, '/') . '/m';
+        $blockIndented = preg_replace($indentPattern, $indent . '    ', $block);
+
+        return $indent . "if (\$this->app->runningInConsole()) {\n"
+            . $indent . "    return;\n"
+            . $indent . "}\n\n"
+            . $indent . "try {\n"
+            . $blockIndented . "\n"
+            . $indent . "} catch (\\Throwable \$e) {\n"
+            . $indent . "    return;\n"
+            . $indent . "}\n";
+    }, $code, 1, $replacements);
+
+    if ($replacements) {
+        if ($newCode !== '' && substr($newCode, -1) !== "\n") {
+            $newCode .= "\n";
+        }
+
+        file_put_contents($path, $newCode);
+    }
+}
+PHP
+
 # PHP deps
 RUN composer install --no-dev --prefer-dist --no-interaction --optimize-autoloader
 
