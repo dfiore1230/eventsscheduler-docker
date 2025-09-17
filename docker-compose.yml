@@ -7,6 +7,8 @@ services:
       args:
         APP_REF: main
     env_file: .env
+    environment:
+      DB_PASSWORD: ${DB_PASSWORD:-change_me}
     depends_on:
       db:
         condition: service_healthy
@@ -43,7 +45,7 @@ services:
     environment:
       MYSQL_DATABASE: eventschedule
       MYSQL_USER: eventschedule
-      MYSQL_PASSWORD: change_me
+      MYSQL_PASSWORD: ${DB_PASSWORD:-change_me}
       MYSQL_ROOT_PASSWORD: rootpass
     volumes:
       - dbdata:/var/lib/mysql
@@ -65,6 +67,8 @@ services:
       db:
         condition: service_healthy
     env_file: .env
+    environment:
+      DB_PASSWORD: ${DB_PASSWORD:-change_me}
     command: ["sh", "-lc", "while :; do php artisan schedule:run --verbose --no-interaction || true; sleep 60; done"]
     restart: unless-stopped
     volumes:
