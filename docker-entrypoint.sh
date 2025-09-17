@@ -29,7 +29,7 @@ if ! grep -q "^APP_KEY=base64:" .env || grep -q "^APP_KEY=\s*$" .env; then
 fi
 
 # Idempotent migrations
-php artisan migrate --force || true
+php artisan migrate --force
 
 exec "$@"
 

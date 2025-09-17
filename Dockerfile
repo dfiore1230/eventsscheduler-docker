@@ -44,7 +44,7 @@ RUN if [ -f config/jetstream.php ]; then \
   php -r '$f=\"config/jetstream.php\";$s=file_get_contents($f);if(strpos($s,\"Features::registration()\")===false){$s=preg_replace(\"/(\\'features\\'\\s*=>\\s*\\[)/\",\"$1\\n        Laravel\\\\Jetstream\\\\Features::registration(),\",$s,1);} file_put_contents($f,$s);'; \
 fi
 RUN if [ -f routes/web.php ]; then \
-  sed -i "s/Auth::routes(\\([^)]*register[^)]*\\)false/ Auth::routes(\\1true/g" routes/web.php || true; \
+  php -r '$f="routes/web.php"; $s=file_get_contents($f); $s=preg_replace("/Auth::routes\\(([^;]*'"'"'register'"'"'\\s*=>\\s*)false/", "Auth::routes($1true", $s, -1, $c); if ($c) file_put_contents($f, $s);'; \
 fi
 
 # --- SIGN-UP OVERRIDE: copy file and require it at end of routes/web.php ---
