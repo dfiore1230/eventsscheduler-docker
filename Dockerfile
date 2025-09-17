@@ -36,6 +36,15 @@ RUN grep -q "forceScheme('https')" app/Providers/AppServiceProvider.php \
 # Ensure .env exists BEFORE composer (artisan post-scripts expect it)
 RUN [ -f .env ] || cp .env.example .env
 
+# During image build we do not have a database available. Swap to a
+# temporary SQLite configuration so that artisan commands executed as part
+# of composer scripts do not attempt to connect to MySQL. The original
+# configuration is restored immediately after composer install completes.
+RUN cp .env .env.dockerbuild \
+ && php -r '$path=".env"; $env=file_get_contents($path); $env=preg_replace("/^DB_CONNECTION=.*/m", "DB_CONNECTION=sqlite", $env, 1, $c1); if(!$c1){$env.="\nDB_CONNECTION=sqlite";} $env=preg_replace("/^DB_DATABASE=.*/m", "DB_DATABASE=database/database.sqlite", $env, 1, $c2); if(!$c2){$env.="\nDB_DATABASE=database/database.sqlite";} file_put_contents($path, $env);' \
+ && mkdir -p database \
+ && touch database/database.sqlite
+
 # Enable public registration in common stacks (no route edits here)
 RUN if [ -f config/fortify.php ]; then \
   php -r '$f=\"config/fortify.php\";$s=file_get_contents($f);if(strpos($s,\"Features::registration()\")===false){$s=preg_replace(\"/(\\'features\\'\\s*=>\\s*\\[)/\",\"$1\\n        Laravel\\\\Fortify\\\\Features::registration(),\",$s,1);} file_put_contents($f,$s);'; \
@@ -109,7 +118,8 @@ foreach ($iterator as $file) {
 PHP
 
 # PHP deps
-RUN composer install --no-dev --prefer-dist --no-interaction --optimize-autoloader
+RUN composer install --no-dev --prefer-dist --no-interaction --optimize-autoloader \
+ && mv .env.dockerbuild .env
 
 # Frontend build (tolerant)
 RUN [ -f package-lock.json ] && npm ci || true
