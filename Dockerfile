@@ -29,9 +29,9 @@ RUN git clone --depth 1 --branch "${APP_REF}" https://github.com/eventschedule/e
 RUN git config --global --add safe.directory /var/www/html
 
 # Gate any forceScheme('https') behind FORCE_HTTPS
-RUN grep -q "forceScheme('https')" app/Providers/AppServiceProvider.php \
-  && sed -i "s/URL::forceScheme('https');/if (env('FORCE_HTTPS', false)) { URL::forceScheme('https'); }/" app/Providers/AppServiceProvider.php \
-  || true
+COPY scripts/force_https_patch.php /tmp/force_https_patch.php
+RUN php /tmp/force_https_patch.php /var/www/html \
+ && rm /tmp/force_https_patch.php
 
 # Ensure .env exists BEFORE composer (artisan post-scripts expect it)
 RUN [ -f .env ] || cp .env.example .env
