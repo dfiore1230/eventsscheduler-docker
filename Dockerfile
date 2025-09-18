@@ -60,13 +60,7 @@ fi
 COPY routes/_sign_up_override.php /var/www/html/routes/_sign_up_override.php
 RUN printf "\n// Allow public sign up without redirecting to /login\nrequire __DIR__.'/_sign_up_override.php';\n" >> routes/web.php
 
-# Overlay project-specific customizations
-COPY overlay/ /var/www/html/
-COPY scripts/customize_email_templates.php /tmp/customize_email_templates.php
-RUN php /tmp/customize_email_templates.php /var/www/html
-
 # Skip settings bootstrap when no DB is available (eg. during image build)
-
 RUN php <<'PHP'
 <?php
 $dir = __DIR__ . '/app/Providers';
