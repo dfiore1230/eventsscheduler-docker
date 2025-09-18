@@ -44,10 +44,33 @@ if (is_file($webPath)) {
     file_put_contents($webPath, $code);
 }
 
-$settingsPaths = [
-    $base . '/resources/views/settings/index.blade.php',
-    $base . '/resources/views/settings.blade.php',
-];
+$settingsPaths = [];
+
+$settingsDir = $base . '/resources/views/settings';
+if (is_dir($settingsDir)) {
+    $iterator = new \RecursiveIteratorIterator(
+        new \RecursiveDirectoryIterator($settingsDir, \RecursiveDirectoryIterator::SKIP_DOTS)
+    );
+
+    foreach ($iterator as $file) {
+        if (!$file->isFile()) {
+            continue;
+        }
+
+        if (!str_ends_with($file->getFilename(), '.blade.php')) {
+            continue;
+        }
+
+        $settingsPaths[] = $file->getPathname();
+    }
+}
+
+$rootSettingsView = $base . '/resources/views/settings.blade.php';
+if (is_file($rootSettingsView)) {
+    $settingsPaths[] = $rootSettingsView;
+}
+
+$settingsPaths = array_values(array_unique($settingsPaths));
 
 $noteBlock = <<<'NOTE'
     <div class="mt-8 bg-yellow-50 border-l-4 border-yellow-400 p-4 rounded-md settings-mail-warning">
@@ -100,10 +123,10 @@ foreach ($settingsPaths as $settingsPath) {
         }
 
         if ($pos === false) {
-            $contents .= $insertion;
-        } else {
-            $contents = substr_replace($contents, $insertion, $pos, 0);
+            continue;
         }
+
+        $contents = substr_replace($contents, $insertion, $pos, 0);
     }
 
     file_put_contents($settingsPath, $contents);
