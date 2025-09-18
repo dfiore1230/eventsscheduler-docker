@@ -28,6 +28,11 @@ RUN git clone --depth 1 --branch "${APP_REF}" https://github.com/eventschedule/e
 # Fix "dubious ownership"
 RUN git config --global --add safe.directory /var/www/html
 
+# Replace AppServiceProvider with a version compatible with non-interactive builds
+COPY patches/AppServiceProvider.php /tmp/AppServiceProvider.php
+RUN cp /tmp/AppServiceProvider.php /var/www/html/app/Providers/AppServiceProvider.php \
+ && rm /tmp/AppServiceProvider.php
+
 # Gate any forceScheme('https') behind FORCE_HTTPS
 COPY scripts/force_https_patch.php /tmp/force_https_patch.php
 RUN php /tmp/force_https_patch.php /var/www/html \
