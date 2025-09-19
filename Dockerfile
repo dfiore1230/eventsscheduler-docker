@@ -16,6 +16,12 @@ RUN docker-php-ext-configure gd --with-jpeg --with-freetype \
  && docker-php-ext-install \
     pdo pdo_mysql mbstring exif pcntl bcmath intl opcache zip gd
 
+# Raise PHP upload limits to accommodate large files
+RUN { \
+      echo 'upload_max_filesize=500M'; \
+      echo 'post_max_size=500M'; \
+    } > /usr/local/etc/php/conf.d/uploads.ini
+
 # Composer
 ENV COMPOSER_ALLOW_SUPERUSER=1 COMPOSER_MEMORY_LIMIT=-1
 COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
