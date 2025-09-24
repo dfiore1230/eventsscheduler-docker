@@ -89,6 +89,9 @@ RUN mkdir -p storage bootstrap/cache \
  && chown -R www-data:www-data storage bootstrap public \
  && php artisan storage:link || true
 
+# Ensure application code is owned by www-data
+RUN chown -R www-data:www-data /var/www/html
+
 # Entrypoint
 COPY docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
 RUN chmod +x /usr/local/bin/docker-entrypoint.sh
