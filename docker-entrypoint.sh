@@ -6,6 +6,12 @@ cd /var/www/html
 # Ensure .env exists
 [ -f .env ] || cp .env.example .env
 
+# Ensure Composer dependencies when vendor volume is empty
+if [ ! -f vendor/autoload.php ]; then
+  echo "Installing Composer dependencies..."
+  composer install --no-dev --prefer-dist --no-interaction --optimize-autoloader
+fi
+
 # Wait for DB (best-effort)
 if [ -n "$DB_HOST" ]; then
   echo "Waiting for DB at ${DB_HOST}:${DB_PORT:-3306}..."
