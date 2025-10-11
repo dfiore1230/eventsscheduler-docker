@@ -57,6 +57,42 @@ The Dockerfile clones the upstream EventSchedule repository. You can change the 
 - **Database access**: Connect to MariaDB on `localhost:3306` (when exposed) using credentials defined in `.env`.
 - **Updating dependencies**: Rebuild the `app` image (`docker compose build app`) after modifying Composer or npm dependencies.
 
+## Publishing Images with GitHub Actions
+
+This repository ships with a reusable GitHub Actions workflow that can build and
+publish the Docker image straight to Docker Hub. To authenticate with your own
+registry account:
+
+1. Copy the bundled credentials template and update it with your Docker Hub
+   account details:
+   ```bash
+   cp .github/.dockerhub-credentials.example .github/.dockerhub-credentials
+   # edit the file to set your username, access token, and repository name
+   ```
+   The real credentials file is ignored by git so it stays local to your
+   machine.
+2. Upload the credentials to your GitHub repository secrets by running the
+   helper script (requires the [GitHub CLI](https://cli.github.com/) to be
+   installed and authenticated for the repository):
+   ```bash
+   ./scripts/publish-dockerhub-secrets.sh
+   ```
+
+   The script reads `.github/.dockerhub-credentials` and configures the
+   `DOCKERHUB_USERNAME`, `DOCKERHUB_TOKEN`, and `DOCKERHUB_REPOSITORY` secrets in
+   your GitHub repository.
+
+Once those secrets are configured, you can trigger the workflow in either of two
+ways:
+
+- Push or merge changes into the `main` branch. The workflow will build the
+  image and push the tagged artifacts to Docker Hub automatically.
+- Run the workflow manually from the **Actions** tab by selecting “Build and
+  Publish Docker image” and clicking **Run workflow**.
+
+Pull requests continue to run the workflow in build-only mode so you can confirm
+the Dockerfile still builds without publishing artifacts.
+
 ## Changelog
 
 See [CHANGELOG.md](CHANGELOG.md) for a history of notable updates.
