@@ -58,6 +58,33 @@ This repository provides a Docker-based runtime for the [EventSchedule](https://
 
 The first startup can take several minutes while dependencies are installed and assets are compiled.
 
+### Running alongside other Docker projects
+
+If you already have other Compose stacks running on your machine, use the
+provided [`docker-compose.extras.example.yml`](docker-compose.extras.example.yml)
+as an override file so EventSchedule can share the host without port
+collisions. The override adjusts the published ports and optionally connects the
+services to a shared user-defined bridge network so they can be discovered by an
+existing reverse proxy or other containers.
+
+1. Create the shared network if you want the stack to communicate with other
+   Compose projects:
+
+   ```bash
+   docker network create shared-services
+   ```
+
+2. Start the stack with the override to publish alternate ports (change the
+   `WEB_PORT` and `DB_HOST_PORT` values if you prefer different mappings):
+
+   ```bash
+   WEB_PORT=18080 DB_HOST_PORT=13306 \
+   docker compose -f docker-compose.yml -f docker-compose.extras.example.yml up -d
+   ```
+
+   To use a different external network name, set `SHARED_NETWORK=<network>` when
+   running the command or edit the override file to match your environment.
+
 ## Service Overview
 
 | Service    | Description                                                                 |

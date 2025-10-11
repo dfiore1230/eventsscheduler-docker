@@ -1,0 +1,31 @@
+# Example override file for running EventSchedule alongside existing Docker stacks.
+#
+# Usage:
+#   docker compose -f docker-compose.yml -f docker-compose.extras.example.yml up -d
+#
+# Customize host ports and optionally join an external shared network so the
+# stack can coexist with other services already running on the host.
+services:
+  web:
+    # Change the HTTP host port if 8080 is already in use.
+    ports:
+      - "${WEB_PORT:-18080}:80"
+    networks:
+      - default
+      - shared-services
+
+  db:
+    # Expose MariaDB on a non-standard port to avoid clashing with other databases.
+    ports:
+      - "${DB_HOST_PORT:-13306}:3306"
+    networks:
+      - default
+      - shared-services
+
+networks:
+  shared-services:
+    # Attach to an existing user-defined bridge network so reverse proxies or other
+    # containers can discover the EventSchedule services. Comment this block out if
+    # you do not need cross-stack communication.
+    external: true
+    name: ${SHARED_NETWORK:-shared-services}
