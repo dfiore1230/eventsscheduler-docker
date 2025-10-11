@@ -63,14 +63,30 @@ This repository ships with a reusable GitHub Actions workflow that can build and
 publish the Docker image straight to Docker Hub. To authenticate with your own
 registry account:
 
-1. In your GitHub repository, go to **Settings → Secrets and variables → Actions**.
-2. Create the following repository secrets using your Docker Hub credentials:
-   - `DOCKERHUB_USERNAME` – the Docker Hub username that owns the target
-     repository.
-   - `DOCKERHUB_TOKEN` – a [Docker Hub access token](https://hub.docker.com/settings/security)
-     with permission to push images.
-   - `DOCKERHUB_REPOSITORY` – the full image name to push, for example
-     `username/events-scheduler`.
+## Publishing Images with GitHub Actions
+
+This repository ships with a reusable GitHub Actions workflow that can build and
+publish the Docker image straight to Docker Hub. To authenticate with your own
+registry account:
+
+1. Copy the bundled credentials template and update it with your Docker Hub
+   account details:
+   ```bash
+   cp .github/.dockerhub-credentials.example .github/.dockerhub-credentials
+   # edit the file to set your username, access token, and repository name
+   ```
+   The real credentials file is ignored by git so it stays local to your
+   machine.
+2. Upload the credentials to your GitHub repository secrets by running the
+   helper script (requires the [GitHub CLI](https://cli.github.com/) to be
+   installed and authenticated for the repository):
+   ```bash
+   ./scripts/publish-dockerhub-secrets.sh
+   ```
+
+   The script reads `.github/.dockerhub-credentials` and configures the
+   `DOCKERHUB_USERNAME`, `DOCKERHUB_TOKEN`, and `DOCKERHUB_REPOSITORY` secrets in
+   your GitHub repository.
 
 Once those secrets are configured, you can trigger the workflow in either of two
 ways:
