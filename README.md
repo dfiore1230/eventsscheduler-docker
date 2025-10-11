@@ -57,6 +57,32 @@ The Dockerfile clones the upstream EventSchedule repository. You can change the 
 - **Database access**: Connect to MariaDB on `localhost:3306` (when exposed) using credentials defined in `.env`.
 - **Updating dependencies**: Rebuild the `app` image (`docker compose build app`) after modifying Composer or npm dependencies.
 
+## Publishing Images with GitHub Actions
+
+This repository ships with a reusable GitHub Actions workflow that can build and
+publish the Docker image straight to Docker Hub. To authenticate with your own
+registry account:
+
+1. In your GitHub repository, go to **Settings → Secrets and variables → Actions**.
+2. Create the following repository secrets using your Docker Hub credentials:
+   - `DOCKERHUB_USERNAME` – the Docker Hub username that owns the target
+     repository.
+   - `DOCKERHUB_TOKEN` – a [Docker Hub access token](https://hub.docker.com/settings/security)
+     with permission to push images.
+   - `DOCKERHUB_REPOSITORY` – the full image name to push, for example
+     `username/events-scheduler`.
+
+Once those secrets are configured, you can trigger the workflow in either of two
+ways:
+
+- Push or merge changes into the `main` branch. The workflow will build the
+  image and push the tagged artifacts to Docker Hub automatically.
+- Run the workflow manually from the **Actions** tab by selecting “Build and
+  Publish Docker image” and clicking **Run workflow**.
+
+Pull requests continue to run the workflow in build-only mode so you can confirm
+the Dockerfile still builds without publishing artifacts.
+
 ## Changelog
 
 See [CHANGELOG.md](CHANGELOG.md) for a history of notable updates.
