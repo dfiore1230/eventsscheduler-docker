@@ -6,7 +6,7 @@ This repository provides a Docker-based runtime for the [EventSchedule](https://
 
 - **Multi-service stack**: PHP-FPM application container, Nginx web server, MariaDB database, and a dedicated scheduler runner.
 - **Automated bootstrap**: Composer dependencies, npm assets, database migrations, and the application key are provisioned automatically when the containers start.
-- **Persistent volumes**: Shared Docker volumes retain database data, uploaded files, Composer vendors, and Node modules between restarts.
+- **Persistent bind mounts**: Shared host directories retain database data, uploaded files, Composer vendors, and Node modules between restarts.
 - **Configurable upstream branch**: Build arguments allow pinning to a specific EventSchedule git reference.
 
 ## Prerequisites
@@ -22,11 +22,16 @@ This repository provides a Docker-based runtime for the [EventSchedule](https://
    cp .env.example .env
    # Update DB_PASSWORD and any additional overrides
    ```
-2. Start the stack:
+2. (Optional) Create host directories for bind-mounted data so permissions can be adjusted ahead of time:
+   ```bash
+   mkdir -p data/{db,storage,vendor,node_modules}
+   ```
+
+3. Start the stack:
    ```bash
    docker compose up --build -d
    ```
-3. Visit [http://localhost:8080](http://localhost:8080) to access the application.
+4. Visit [http://localhost:8080](http://localhost:8080) to access the application.
 
 The first startup can take several minutes while dependencies are installed and assets are compiled.
 

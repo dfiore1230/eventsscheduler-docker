@@ -13,9 +13,9 @@ services:
       db:
         condition: service_healthy
     volumes:
-      - storage:/var/www/html/storage
-      - vendor:/var/www/html/vendor
-      - node_modules:/var/www/html/node_modules
+      - ./data/storage:/var/www/html/storage
+      - ./data/vendor:/var/www/html/vendor
+      - ./data/node_modules:/var/www/html/node_modules
     entrypoint: ["/usr/local/bin/docker-entrypoint.sh"]
     command: ["php-fpm", "-F"]
     restart: unless-stopped
@@ -37,7 +37,7 @@ services:
       - "8080:80"
     # Nginx only needs runtime-uploaded files; avoid masking bundled code
     volumes:
-      - storage:/var/www/html/storage:ro
+      - ./data/storage:/var/www/html/storage:ro
     restart: unless-stopped
 
   db:
@@ -48,7 +48,7 @@ services:
       MYSQL_PASSWORD: ${DB_PASSWORD:-change_me}
       MYSQL_ROOT_PASSWORD: rootpass
     volumes:
-      - dbdata:/var/lib/mysql
+      - ./data/db:/var/lib/mysql
     healthcheck:
       test: ["CMD", "mariadb-admin", "ping", "-h", "127.0.0.1", "-uroot", "-prootpass"]
       interval: 5s
@@ -72,13 +72,7 @@ services:
     command: ["sh", "-lc", "while :; do php artisan schedule:run --verbose --no-interaction || true; sleep 60; done"]
     restart: unless-stopped
     volumes:
-      - storage:/var/www/html/storage
-      - vendor:/var/www/html/vendor
-      - node_modules:/var/www/html/node_modules
-
-volumes:
-  dbdata:
-  storage:
-  vendor:
-  node_modules:
+      - ./data/storage:/var/www/html/storage
+      - ./data/vendor:/var/www/html/vendor
+      - ./data/node_modules:/var/www/html/node_modules
 
