@@ -27,10 +27,33 @@ This repository provides a Docker-based runtime for the [EventSchedule](https://
    mkdir -p data/{db,storage,vendor,node_modules}
    ```
 
-3. Start the stack:
-   ```bash
-   docker compose up --build -d
-   ```
+3. Start the stack. Choose the workflow that matches your situation:
+
+   - **Build locally:**
+     ```bash
+     docker compose up --build -d
+     ```
+     This rebuilds the `eventschedule/app:local`, `eventschedule/web:local`, and
+     `eventschedule/scheduler:local` images on your machine and then boots the
+     stack.
+
+   - **Use images published by GitHub Actions:**
+     ```bash
+     export APP_IMAGE="<dockerhub-repo>:app"
+     export WEB_IMAGE="<dockerhub-repo>:web"
+     export SCHEDULER_IMAGE="<dockerhub-repo>:scheduler"
+     docker compose pull
+     docker compose up -d --no-build
+     ```
+     Replace `<dockerhub-repo>` with the repository you configured in
+     `.github/.dockerhub-credentials` (for example `acme/eventschedule`). The
+     workflow pushes tags for each service (`:app`, `:web`, and `:scheduler`),
+     allowing `docker compose` to pull the artifacts instead of rebuilding
+     locally.
+
+   > **Tip:** Running `docker build` alone only produces the PHP-FPM image from
+   > the `Dockerfile`. Use `docker compose up` so the `web`, `db`, and
+   > `scheduler` services start alongside the `app` container.
 4. Visit [http://localhost:8080](http://localhost:8080) to access the application.
 
 The first startup can take several minutes while dependencies are installed and assets are compiled.
@@ -60,13 +83,7 @@ The Dockerfile clones the upstream EventSchedule repository. You can change the 
 ## Publishing Images with GitHub Actions
 
 This repository ships with a reusable GitHub Actions workflow that can build and
-publish the Docker image straight to Docker Hub. To authenticate with your own
-registry account:
-
-## Publishing Images with GitHub Actions
-
-This repository ships with a reusable GitHub Actions workflow that can build and
-publish the Docker image straight to Docker Hub. To authenticate with your own
+publish the Docker images straight to Docker Hub. To authenticate with your own
 registry account:
 
 1. Copy the bundled credentials template and update it with your Docker Hub
@@ -92,12 +109,14 @@ Once those secrets are configured, you can trigger the workflow in either of two
 ways:
 
 - Push or merge changes into the `main` branch. The workflow will build the
-  image and push the tagged artifacts to Docker Hub automatically.
+  images and push the tagged artifacts to Docker Hub automatically.
 - Run the workflow manually from the **Actions** tab by selecting “Build and
   Publish Docker image” and clicking **Run workflow**.
 
-Pull requests continue to run the workflow in build-only mode so you can confirm
-the Dockerfile still builds without publishing artifacts.
+The workflow publishes three tags—`:app`, `:web`, and `:scheduler`—along with
+per-commit variants (e.g., `:web-<sha>`). Pull requests continue to run the
+workflow in build-only mode so you can confirm the Dockerfile still builds
+without publishing artifacts.
 
 ## Changelog
 
