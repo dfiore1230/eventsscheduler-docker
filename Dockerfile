@@ -111,7 +111,7 @@ CMD ["php-fpm", "-F"]
 # =========================
 FROM nginx:1.27-alpine AS web
 COPY --from=app /var/www/html /var/www/html
-COPY nginx.conf /etc/nginx/conf.d/default.conf
+COPY nginx.conf /etc/nginx/nginx.conf
 RUN test -d /var/www/html/public
 
 
@@ -124,7 +124,7 @@ ENV INTERNAL_DB=1 \
 RUN apk add --no-cache nginx supervisor mariadb mariadb-client mariadb-backup \
  && mkdir -p /run/nginx /var/log/supervisor /run/mysqld /var/lib/mysql \
  && chown -R mysql:mysql /run/mysqld /var/lib/mysql
-COPY nginx.conf /etc/nginx/conf.d/default.conf
+COPY nginx.conf /etc/nginx/nginx.conf
 COPY scripts/supervisord-single.conf /etc/supervisord.conf
 EXPOSE 80
 ENTRYPOINT ["/usr/local/bin/docker-entrypoint.sh"]
