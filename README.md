@@ -30,24 +30,21 @@ This repository provides a Docker-based runtime for the [EventSchedule](https://
 
 The first startup can take several minutes while dependencies are installed and assets are compiled.
 
-## Single-Container Stack (SQLite + Bind Mounts)
+## Single-Container Stack (App Bundle + Embedded MariaDB)
 
-For lightweight environments you can run the web server, PHP-FPM worker, and scheduler inside a single container. This variant
-stores uploads and the SQLite database on bind-mounted directories so that data persists between rebuilds without relying on
-named Docker volumes.
+For lightweight environments you can run the web server, PHP-FPM worker, scheduler, **and MariaDB** inside a single container.
+Application uploads and database files are persisted on bind-mounted directories so that data survives rebuilds without using
+named Docker volumes for the app container.
 
 1. Prepare the bind-mount directories (they can live anywhere on your host):
    ```bash
-   mkdir -p bind/storage bind/database
+   mkdir -p bind/storage bind/mysql
    ```
 2. Start the single-container stack:
    ```bash
    docker compose -f docker-compose.single.yml up --build -d
    ```
 3. Access the application at [http://localhost:8080](http://localhost:8080).
-
-The container defaults to SQLite. If you would rather connect to an external MySQL or MariaDB instance, set `USE_SQLITE=0` and
-provide the usual database environment variables in `.env` before starting the stack.
 
 ## Using the Prebuilt Docker Hub Image
 
@@ -79,19 +76,17 @@ docker compose -f examples/docker-compose.prebuilt.yml up -d
 The Compose definition wires the published image into the standard `app`,
 `web`, and `scheduler` services while leaving the MariaDB dependency unchanged.
 
-Prefer the single-container topology? A matching prebuilt Compose file is
-available at
+Prefer the single-container topology? A matching prebuilt Compose file is available at
 [`examples/docker-compose.single-prebuilt.yml`](examples/docker-compose.single-prebuilt.yml):
 
 ```bash
 cp .env.example .env
-mkdir -p bind/storage bind/database
+mkdir -p bind/storage bind/mysql
 docker compose -f examples/docker-compose.single-prebuilt.yml up -d
 ```
 
-This version layers the published image with bind mounts for the SQLite
-database and Laravel storage directories so you can persist uploads without
-creating named Docker volumes.
+This version layers the published image with bind mounts for Laravel storage and MariaDB data so you can mirror the single-container
+topology without rebuilding images.
 
 ## Service Overview
 
