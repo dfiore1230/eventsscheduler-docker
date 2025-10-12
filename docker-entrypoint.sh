@@ -9,28 +9,6 @@ cd /var/www/html
 # Ensure Composer dependencies when vendor volume is empty
 mkdir -p vendor
 vendor_lock="vendor/.installing-dependencies"
-vendor_lock_timeout="${VENDOR_LOCK_TIMEOUT_SECONDS:-900}"
-
-is_lock_stale() {
-  [ ! -d "$vendor_lock" ] && return 1
-
-  if [ -f "$vendor_lock/.timestamp" ]; then
-    lock_created=$(cat "$vendor_lock/.timestamp" 2>/dev/null || printf '0')
-  else
-    lock_created=$(stat -c %Y "$vendor_lock" 2>/dev/null || printf '0')
-  fi
-
-  lock_created=${lock_created%%[^0-9]*}
-  [ -z "$lock_created" ] && lock_created=0
-
-  now=$(date +%s)
-  [ "$lock_created" -eq 0 ] && return 0
-
-  age=$((now - lock_created))
-  [ "$age" -lt 0 ] && return 1
-
-  [ "$age" -ge "$vendor_lock_timeout" ]
-}
 
 cleanup_vendor_lock() {
   if [ -d "$vendor_lock" ]; then
@@ -44,7 +22,6 @@ acquire_vendor_dependencies() {
 
   while [ ! -f vendor/autoload.php ]; do
     if mkdir "$vendor_lock" 2>/dev/null; then
-      date +%s >"$vendor_lock/.timestamp" 2>/dev/null || true
       if [ -d /opt/app-bootstrap/vendor ]; then
         echo "Populating vendor directory from image cache..."
         if ! cp -a /opt/app-bootstrap/vendor/. vendor/; then
@@ -63,11 +40,6 @@ acquire_vendor_dependencies() {
     fi
 
     if [ -d "$vendor_lock" ]; then
-      if is_lock_stale; then
-        echo "Vendor dependency lock appears stale. Removing it so dependencies can be installed..."
-        rm -rf "$vendor_lock"
-        continue
-      fi
       echo "Waiting for another container to finish installing Composer dependencies..."
     else
       echo "Unable to create vendor lock directory '$vendor_lock'. Check volume permissions." >&2
