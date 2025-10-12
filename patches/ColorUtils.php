@@ -39,6 +39,22 @@ class ColorUtils
     }
 
     /**
+     * Build a CSS-ready linear gradient definition from a random palette.
+     */
+    public static function randomBackgroundImage(): string
+    {
+        $colors = self::randomGradient();
+
+        if (empty($colors)) {
+            return '';
+        }
+
+        $stops = implode(', ', $colors);
+
+        return sprintf('linear-gradient(135deg, %s)', $stops);
+    }
+
+    /**
      * Attempt to download gradients from the upstream source.
      *
      * @return array<int, array<int, string>>
