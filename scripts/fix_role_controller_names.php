@@ -33,6 +33,53 @@ if ($code === null) {
     exit(1);
 }
 
+$assignmentPattern = '/\$(\w+)\s*=\s*json_decode\(((?>[^()]+|(?R))*)\)\s*;/';
+
+if (preg_match_all($assignmentPattern, $code, $assignmentMatches)) {
+    $variables = array_unique($assignmentMatches[1]);
+
+    foreach ($variables as $variable) {
+        $variablePattern = '/\$(' . preg_quote($variable, '/') . ')\s*(\?->|->)\s*name/';
+
+        if (!preg_match_all($variablePattern, $code, $propertyMatches, PREG_OFFSET_CAPTURE)) {
+            continue;
+        }
+
+        $replacements = [];
+
+        foreach ($propertyMatches[0] as $match) {
+            [$text, $offset] = $match;
+
+            $before = substr($code, 0, $offset);
+
+            $skip = false;
+
+            foreach (['isset', 'empty', 'property_exists'] as $fn) {
+                if (preg_match('/' . $fn . '\s*\($/i', $before)) {
+                    $skip = true;
+                    break;
+                }
+            }
+
+            if ($skip) {
+                continue;
+            }
+
+            $replacements[] = [$offset, strlen($text), '$this->resolveLocalizedName($' . $variable . ')'];
+        }
+
+        if (!$replacements) {
+            continue;
+        }
+
+        $updated = true;
+
+        foreach (array_reverse($replacements) as [$offset, $length, $replacement]) {
+            $code = substr_replace($code, $replacement, $offset, $length);
+        }
+    }
+}
+
 if (!$updated) {
     exit(0);
 }
