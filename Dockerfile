@@ -48,6 +48,11 @@ RUN mkdir -p /var/www/html/app/Utils \
  && cp /tmp/ColorUtils.php /var/www/html/app/Utils/ColorUtils.php \
  && rm /tmp/ColorUtils.php
 
+# Normalize RoleController name handling to cope with missing JSON keys
+COPY scripts/fix_role_controller_names.php /tmp/fix_role_controller_names.php
+RUN php /tmp/fix_role_controller_names.php /var/www/html \
+ && rm /tmp/fix_role_controller_names.php
+
 # Gate any forceScheme('https') behind FORCE_HTTPS
 COPY scripts/force_https_patch.php /tmp/force_https_patch.php
 RUN php /tmp/force_https_patch.php /var/www/html \
