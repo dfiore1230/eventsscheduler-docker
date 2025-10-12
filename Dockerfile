@@ -78,9 +78,7 @@ RUN php /tmp/skip_settings_bootstrap.php /var/www/html \
 
 # PHP deps
 RUN composer install --no-dev --prefer-dist --no-interaction --optimize-autoloader \
- && mv .env.dockerbuild .env \
- && mkdir -p /opt/app-bootstrap \
- && cp -a vendor /opt/app-bootstrap/vendor
+ && mv .env.dockerbuild .env
 
 # Frontend build (tolerant)
 RUN [ -f package-lock.json ] && npm ci || true
