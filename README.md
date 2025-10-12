@@ -110,43 +110,6 @@ The Dockerfile clones the upstream EventSchedule repository. You can change the 
   run was interrupted and the lock remains, the entrypoint automatically clears it after 15 minutes so dependencies can be
   reinstalled. You can override the timeout by setting `VENDOR_LOCK_TIMEOUT_SECONDS` in `.env`.
 
-### Validation checklist after applying fixes
-
-When you make changes to the Docker environment or upstream application, use the following loop to validate that the stack picks
-up the updates cleanly:
-
-1. **Stop any existing containers** to avoid cached state from earlier runs:
-   ```bash
-   docker compose down --remove-orphans
-   ```
-2. **Purge bind-mounted data** if the change affects dependencies or the database. This forces Composer, npm, and MariaDB to
-   start fresh the next time the containers boot:
-   ```bash
-   docker compose down -v
-   ```
-   Remove the step if you need to retain data between runs.
-3. **Rebuild the images** so code or dependency changes are baked into the containers:
-   ```bash
-   docker compose up --build -d
-   ```
-4. **Watch the logs** until all services report healthy, addressing any stack traces or migration failures that appear:
-   ```bash
-   docker compose logs -f app
-   docker compose logs -f scheduler
-   ```
-5. **Run targeted health checks** from inside the containers when the stack is up. For example, confirm scheduled jobs and
-   artisan commands succeed:
-   ```bash
-   docker compose exec app php artisan migrate:status
-   docker compose exec app php artisan schedule:run --verbose
-   ```
-6. **Verify the web interface** by visiting [http://localhost:8080](http://localhost:8080) (or the alternate port defined in
-   your override files) and exercising the feature you just changed.
-
-Repeat the sequence whenever a fix is applied. The explicit teardown plus rebuild cycle ensures the Docker runtime does not reuse
-stale containers or cached dependencies, while the log tail and artisan checks make it clear whether the underlying Laravel
-application is still reporting the original errors.
-
 ## Publishing Images with GitHub Actions
 
 This repository ships with a reusable GitHub Actions workflow that can build and
