@@ -57,10 +57,10 @@ acquire_vendor_dependencies
 if [ ! -f vendor/autoload.php ]; then
   cat >&2 <<'EOF'
 ERROR: Unable to locate vendor/autoload.php after preparing Composer dependencies.
-This usually means the bind-mounted vendor volume is not writable or the
-dependency installation failed silently. Please verify the permissions of the
-./data/vendor directory (or the configured vendor volume) and rerun the
-container so dependencies can be installed.
+This usually means the bind-mounted vendor directory is not writable or the
+dependency installation failed silently. Please verify the permissions of
+./data/vendor on the host and rerun the container so dependencies can be
+installed.
 EOF
   exit 1
 fi
