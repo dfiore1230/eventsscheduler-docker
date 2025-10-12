@@ -73,45 +73,34 @@ The Dockerfile clones the upstream EventSchedule repository. You can change the 
 
 ## Publishing Images with GitHub Actions
 
-This repository ships with a reusable GitHub Actions workflow that can build and
-publish the Docker image straight to Docker Hub. To authenticate with your own
-registry account:
+This repository ships with a GitHub Actions workflow named **Build and Publish
+Docker image**. The workflow builds the `single` stage of the Dockerfile on
+every pull request, push to `main`, and manual run from the **Actions** tab. On
+pull requests it performs a build-only dry run, while pushes to `main` publish
+the resulting image to Docker Hub when credentials are available.
 
-## Publishing Images with GitHub Actions
+To enable publishing, create the following secrets in your GitHub repository:
 
-This repository ships with a reusable GitHub Actions workflow that can build and
-publish the Docker image straight to Docker Hub. To authenticate with your own
-registry account:
+| Secret                 | Description                                           |
+|------------------------|-------------------------------------------------------|
+| `DOCKERHUB_USERNAME`   | Docker Hub username that owns the target repository. |
+| `DOCKERHUB_TOKEN`      | Access token or password for that account.           |
+| `DOCKERHUB_REPOSITORY` | Fully-qualified repository name (e.g. `user/image`). |
 
-1. Copy the bundled credentials template and update it with your Docker Hub
-   account details:
-   ```bash
-   cp .github/.dockerhub-credentials.example .github/.dockerhub-credentials
-   # edit the file to set your username, access token, and repository name
-   ```
-   The real credentials file is ignored by git so it stays local to your
-   machine.
-2. Upload the credentials to your GitHub repository secrets by running the
-   helper script (requires the [GitHub CLI](https://cli.github.com/) to be
-   installed and authenticated for the repository):
-   ```bash
-   ./scripts/publish-dockerhub-secrets.sh
-   ```
+You can set these secrets through the GitHub web UI or with the
+[GitHub CLI](https://cli.github.com/) by running:
 
-   The script reads `.github/.dockerhub-credentials` and configures the
-   `DOCKERHUB_USERNAME`, `DOCKERHUB_TOKEN`, and `DOCKERHUB_REPOSITORY` secrets in
-   your GitHub repository.
+```bash
+gh secret set DOCKERHUB_USERNAME --body "your-username"
+gh secret set DOCKERHUB_TOKEN --body "<access token>"
+gh secret set DOCKERHUB_REPOSITORY --body "your-username/eventsschedule"
+```
 
-Once those secrets are configured, you can trigger the workflow in either of two
-ways:
-
-- Push or merge changes into the `main` branch. The workflow will build the
-  image and push the tagged artifacts to Docker Hub automatically.
-- Run the workflow manually from the **Actions** tab by selecting “Build and
-  Publish Docker image” and clicking **Run workflow**.
-
-Pull requests continue to run the workflow in build-only mode so you can confirm
-the Dockerfile still builds without publishing artifacts.
+Once configured, pushing to `main` will build, tag, and publish images using the
+branch, tag, and `latest` conventions emitted by the workflow. Manual runs from
+the Actions tab behave the same way. If the secrets are missing (for example,
+when the workflow is triggered from a fork), the workflow still builds the
+image to ensure the Dockerfile remains healthy but skips publishing.
 
 ## Changelog
 
