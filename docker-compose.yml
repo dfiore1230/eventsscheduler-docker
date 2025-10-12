@@ -74,7 +74,6 @@ services:
     environment:
       DB_HOST: db
       DB_PASSWORD: ${DB_PASSWORD:-change_me}
-    entrypoint: ["/usr/local/bin/docker-entrypoint.sh"]
     command: ["sh", "-lc", "while :; do php artisan schedule:run --verbose --no-interaction || true; sleep 60; done"]
     restart: unless-stopped
     volumes:
