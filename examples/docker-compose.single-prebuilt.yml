@@ -1,0 +1,28 @@
+version: "3.8"
+
+# This compose file runs the single-container variant from the
+# published dfiore/eventsschedule:latest image. It mirrors
+# docker-compose.single.yml but skips the build step so you can
+# launch immediately after preparing the bind mounts and .env file.
+
+services:
+  app:
+    image: dfiore/eventsschedule:latest
+    pull_policy: if_not_present
+    env_file: ../.env
+    environment:
+      USE_SQLITE: "1"
+    ports:
+      - "8080:80"
+    volumes:
+      - type: bind
+        source: ../bind/storage
+        target: /var/www/html/storage
+      - type: bind
+        source: ../bind/database
+        target: /var/www/html/database
+    entrypoint: ["/usr/local/bin/docker-entrypoint.sh"]
+    command: ["/usr/local/bin/start-single.sh"]
+    restart: unless-stopped
+
+volumes: {}

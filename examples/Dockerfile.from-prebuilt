@@ -1,0 +1,34 @@
+# syntax=docker/dockerfile:1
+# Example Dockerfile that reuses the prebuilt EventSchedule image published on Docker Hub.
+#
+# This is useful when you want to layer additional configuration, assets, or environment
+# defaults on top of the published container without rebuilding PHP, Composer dependencies,
+# or front-end assets yourself.
+
+FROM dfiore/eventsschedule:latest
+
+# Copy production environment configuration into the container (optional).
+# Uncomment and adjust the following lines to include your own environment file.
+# COPY .env.production /var/www/html/.env
+
+# Copy any additional application assets or overrides. For example, to bundle a
+# custom logo or theme that lives alongside this Dockerfile:
+# COPY branding/logo.svg /var/www/html/public/images/logo.svg
+
+# Run any one-time setup commands that should happen at build-time. Because the
+# upstream image already installs dependencies and caches configuration, keep
+# additional work minimal.
+# RUN php artisan config:cache
+
+# The base image exposes port 80 and defines an entrypoint that starts Nginx,
+# PHP-FPM, and the Laravel scheduler. No additional configuration is required
+# unless you need to change that behaviour.
+
+# Optionally, set or override environment variables directly in the Dockerfile.
+# These can also be provided at runtime with `docker run -e` or via Compose files.
+# ENV APP_ENV=production \
+#     APP_DEBUG=false \
+#     APP_URL=https://events.example.com
+
+# The default CMD inherited from the base image starts the application stack,
+# so there is nothing to override here.
