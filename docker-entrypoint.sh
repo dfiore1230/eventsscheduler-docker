@@ -9,65 +9,50 @@ cd /var/www/html
 # Ensure Composer dependencies when vendor volume is empty
 mkdir -p vendor
 vendor_lock="vendor/.installing-dependencies"
-vendor_lock_acquired=0
 
 cleanup_vendor_lock() {
-  if [ "$vendor_lock_acquired" -eq 1 ]; then
+  if [ -d "$vendor_lock" ]; then
     rmdir "$vendor_lock" 2>/dev/null || rm -rf "$vendor_lock"
-    vendor_lock_acquired=0
   fi
 }
 
-trap cleanup_vendor_lock EXIT
+acquire_vendor_dependencies() {
+  # Always ensure we clean up the lock if we are the ones that created it
+  trap cleanup_vendor_lock EXIT INT TERM
 
-if [ ! -f vendor/autoload.php ]; then
-  if mkdir "$vendor_lock" 2>/dev/null; then
-    vendor_lock_acquired=1
-  else
-    echo "Waiting for another container to finish installing Composer dependencies..."
-    for _ in $(seq 1 120); do
-      if [ -f vendor/autoload.php ]; then
-        break
-      fi
-
-      if [ ! -d "$vendor_lock" ]; then
-        if mkdir "$vendor_lock" 2>/dev/null; then
-          vendor_lock_acquired=1
-          break
+  while [ ! -f vendor/autoload.php ]; do
+    if mkdir "$vendor_lock" 2>/dev/null; then
+      if [ -d /opt/app-bootstrap/vendor ]; then
+        echo "Populating vendor directory from image cache..."
+        if ! cp -a /opt/app-bootstrap/vendor/. vendor/; then
+          echo "Unable to copy cached vendor directory, will run composer install instead."
         fi
       fi
 
-      sleep 1
-    done
-
-    if [ "$vendor_lock_acquired" -eq 0 ] && [ ! -f vendor/autoload.php ]; then
-      if mkdir "$vendor_lock" 2>/dev/null; then
-        vendor_lock_acquired=1
+      if [ ! -f vendor/autoload.php ]; then
+        echo "Installing Composer dependencies..."
+        composer install --no-dev --prefer-dist --no-interaction --optimize-autoloader
       fi
-    fi
-  fi
 
-  if [ "$vendor_lock_acquired" -eq 1 ]; then
-    if [ -d /opt/app-bootstrap/vendor ]; then
-      echo "Populating vendor directory from image cache..."
-      if ! cp -a /opt/app-bootstrap/vendor/. vendor/; then
-        echo "Unable to copy cached vendor directory, will run composer install instead."
-      fi
+      cleanup_vendor_lock
+      trap - EXIT INT TERM
+      return 0
     fi
 
-    if [ ! -f vendor/autoload.php ]; then
-      echo "Installing Composer dependencies..."
-      composer install --no-dev --prefer-dist --no-interaction --optimize-autoloader
+    if [ -d "$vendor_lock" ]; then
+      echo "Waiting for another container to finish installing Composer dependencies..."
+    else
+      echo "Unable to create vendor lock directory '$vendor_lock'. Check volume permissions." >&2
+      exit 1
     fi
-  fi
-fi
 
-if [ "$vendor_lock_acquired" -eq 1 ]; then
-  cleanup_vendor_lock
-  trap - EXIT
-fi
+    sleep 2
+  done
 
-trap - EXIT
+  trap - EXIT INT TERM
+}
+
+acquire_vendor_dependencies
 
 # Wait for DB (best-effort)
 if [ -n "$DB_HOST" ]; then
