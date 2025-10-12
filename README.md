@@ -106,6 +106,9 @@ The Dockerfile clones the upstream EventSchedule repository. You can change the 
 - **Migrations**: The entrypoint runs `php artisan migrate --force` on startup. Run additional artisan commands via `docker compose exec app php artisan ...`.
 - **Database access**: Connect to MariaDB on `localhost:3306` (when exposed) using credentials defined in `.env`.
 - **Updating dependencies**: Rebuild the `app` image (`docker compose build app`) after modifying Composer or npm dependencies.
+- **Stuck dependency install**: The containers coordinate Composer installs with a lock directory inside `vendor/`. If a previous
+  run was interrupted and the lock remains, the entrypoint automatically clears it after 15 minutes so dependencies can be
+  reinstalled. You can override the timeout by setting `VENDOR_LOCK_TIMEOUT_SECONDS` in `.env`.
 
 ## Publishing Images with GitHub Actions
 
