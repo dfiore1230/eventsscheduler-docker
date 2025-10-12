@@ -124,7 +124,7 @@ ENV INTERNAL_DB=1 \
 RUN apk add --no-cache nginx supervisor mariadb mariadb-client mariadb-backup \
  && mkdir -p /run/nginx /var/log/supervisor /run/mysqld /var/lib/mysql \
  && chown -R mysql:mysql /run/mysqld /var/lib/mysql
-COPY nginx.conf /etc/nginx/nginx.conf
+COPY nginx.single.conf /etc/nginx/nginx.conf
 COPY scripts/supervisord-single.conf /etc/supervisord.conf
 EXPOSE 80
 ENTRYPOINT ["/usr/local/bin/docker-entrypoint.sh"]
