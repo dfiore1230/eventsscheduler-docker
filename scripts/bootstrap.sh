@@ -19,6 +19,10 @@ bootstrap_app() {
     cp .docker/storage-seeds/gradients.json storage/gradients.json
   fi
 
+  if [ ! -f storage/headers.json ] && [ -f .docker/storage-seeds/headers.json ]; then
+    cp .docker/storage-seeds/headers.json storage/headers.json
+  fi
+
   # Ensure .env exists
   if [ ! -f .env ]; then
     cp .env.example .env
