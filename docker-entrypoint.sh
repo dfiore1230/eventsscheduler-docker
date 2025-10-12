@@ -8,6 +8,16 @@ cd /var/www/html
 
 # Ensure Composer dependencies when vendor volume is empty
 if [ ! -f vendor/autoload.php ]; then
+  if [ -d /opt/app-bootstrap/vendor ]; then
+    echo "Populating vendor directory from image cache..."
+    mkdir -p vendor
+    if ! cp -a /opt/app-bootstrap/vendor/. vendor/; then
+      echo "Unable to copy cached vendor directory, will run composer install instead."
+    fi
+  fi
+fi
+
+if [ ! -f vendor/autoload.php ]; then
   echo "Installing Composer dependencies..."
   composer install --no-dev --prefer-dist --no-interaction --optimize-autoloader
 fi
