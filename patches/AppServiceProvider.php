@@ -5,6 +5,7 @@ namespace App\Providers;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\URL;
 use Illuminate\Support\Facades\View;
+use Illuminate\View\View as ViewView;
 use Illuminate\Support\ServiceProvider;
 
 class AppServiceProvider extends ServiceProvider
@@ -30,6 +31,12 @@ class AppServiceProvider extends ServiceProvider
         if ($this->app->runningInConsole()) {
             return;
         }
+
+        View::composer('*', function (ViewView $view): void {
+            if (!array_key_exists('schedules', $view->getData())) {
+                $view->with('schedules', collect());
+            }
+        });
 
         if (!class_exists(\App\Models\Setting::class)) {
             return;
