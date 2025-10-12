@@ -1,0 +1,23 @@
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: single
+      args:
+        APP_REF: main
+    env_file: .env
+    environment:
+      USE_SQLITE: "1"
+    ports:
+      - "8080:80"
+    volumes:
+      - type: bind
+        source: ./bind/storage
+        target: /var/www/html/storage
+      - type: bind
+        source: ./bind/database
+        target: /var/www/html/database
+    restart: unless-stopped
+
+volumes: {}

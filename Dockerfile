@@ -92,9 +92,13 @@ RUN mkdir -p storage bootstrap/cache \
 # Ensure application code is owned by www-data
 RUN chown -R www-data:www-data /var/www/html
 
-# Entrypoint
+# Entrypoint + helpers
 COPY docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
-RUN chmod +x /usr/local/bin/docker-entrypoint.sh
+COPY scripts/bootstrap.sh /usr/local/bin/bootstrap.sh
+COPY scripts/start-single.sh /usr/local/bin/start-single.sh
+RUN chmod +x /usr/local/bin/docker-entrypoint.sh \
+    /usr/local/bin/bootstrap.sh \
+    /usr/local/bin/start-single.sh
 
 # Default command
 CMD ["php-fpm", "-F"]
@@ -107,4 +111,17 @@ FROM nginx:1.27-alpine AS web
 COPY --from=app /var/www/html /var/www/html
 COPY nginx.conf /etc/nginx/conf.d/default.conf
 RUN test -d /var/www/html/public
+
+
+# =========================
+# Stage: single (nginx + php-fpm + scheduler)
+# =========================
+FROM app AS single
+RUN apk add --no-cache nginx supervisor \
+ && mkdir -p /run/nginx /var/log/supervisor
+COPY nginx.conf /etc/nginx/conf.d/default.conf
+COPY scripts/supervisord-single.conf /etc/supervisord.conf
+EXPOSE 80
+ENTRYPOINT ["/usr/local/bin/docker-entrypoint.sh"]
+CMD ["/usr/local/bin/start-single.sh"]
 
