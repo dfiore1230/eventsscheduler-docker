@@ -33,8 +33,14 @@ class AppServiceProvider extends ServiceProvider
         }
 
         View::composer('*', function (ViewView $view): void {
-            if (!array_key_exists('schedules', $view->getData())) {
+            $data = $view->getData();
+
+            if (!array_key_exists('schedules', $data)) {
                 $view->with('schedules', collect());
+            }
+
+            if (!array_key_exists('venues', $data)) {
+                $view->with('venues', collect());
             }
         });
 
