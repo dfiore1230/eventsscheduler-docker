@@ -12,7 +12,9 @@ escape_literal() {
 start_internal_db() {
   local datadir="${DB_DATA_DIR:-/var/lib/mysql}"
   local run_dir="/run/mysqld"
+  local socket="$run_dir/mysqld.sock"
   local port="${DB_PORT:-3306}"
+  local server_bin
 
   mkdir -p "$run_dir" "$datadir"
   chown -R mysql:mysql "$run_dir" "$datadir"
@@ -22,13 +24,26 @@ start_internal_db() {
     mariadb-install-db --user=mysql --datadir="$datadir" --skip-test-db --auth-root-authentication-method=normal >/dev/null
   fi
 
-  echo "Starting internal MariaDB server..."
-  mariadbd --datadir="$datadir" --socket="$run_dir/mysqld.sock" --pid-file="$run_dir/mysqld.pid" --bind-address=127.0.0.1 --port="$port" --user=mysql &
+  if command -v mariadbd >/dev/null 2>&1; then
+    server_bin="mariadbd"
+  else
+    server_bin="mysqld"
+  fi
+
+  echo "Starting internal MariaDB server using ${server_bin}..."
+  "$server_bin" \
+    --datadir="$datadir" \
+    --socket="$socket" \
+    --pid-file="$run_dir/mysqld.pid" \
+    --bind-address=127.0.0.1 \
+    --skip-networking=0 \
+    --port="$port" \
+    --user=mysql &
   INTERNAL_DB_PID=$!
 
   echo "Waiting for internal MariaDB to accept connections..."
   for i in $(seq 1 60); do
-    if mariadb-admin ping -h127.0.0.1 -P"$port" -uroot --socket="$run_dir/mysqld.sock" >/dev/null 2>&1; then
+    if mariadb-admin ping -h127.0.0.1 -P"$port" -uroot --socket="$socket" >/dev/null 2>&1; then
       break
     fi
     sleep 1
@@ -46,11 +61,14 @@ start_internal_db() {
   local escaped_user="$(escape_literal "$db_user")"
   local escaped_pass="$(escape_literal "$db_pass")"
 
-  cat <<SQL | mariadb -h127.0.0.1 -P"$port" -uroot --socket="$run_dir/mysqld.sock"
+  cat <<SQL | mariadb -h127.0.0.1 -P"$port" -uroot --socket="$socket"
 CREATE DATABASE IF NOT EXISTS \`$escaped_db_name\`;
 CREATE USER IF NOT EXISTS '$escaped_user'@'%' IDENTIFIED BY '$escaped_pass';
 ALTER USER '$escaped_user'@'%' IDENTIFIED BY '$escaped_pass';
 GRANT ALL PRIVILEGES ON \`$escaped_db_name\`.* TO '$escaped_user'@'%';
+CREATE USER IF NOT EXISTS '$escaped_user'@'127.0.0.1' IDENTIFIED BY '$escaped_pass';
+ALTER USER '$escaped_user'@'127.0.0.1' IDENTIFIED BY '$escaped_pass';
+GRANT ALL PRIVILEGES ON \`$escaped_db_name\`.* TO '$escaped_user'@'127.0.0.1';
 FLUSH PRIVILEGES;
 SQL
 }
