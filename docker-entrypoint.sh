@@ -125,10 +125,22 @@ if [ -n "$DB_HOST" ]; then
   done
 fi
 
-# Ensure APP_KEY
-if ! grep -q "^APP_KEY=base64:" .env || grep -q "^APP_KEY=\s*$" .env; then
-  php artisan key:generate --force || true
-fi
+# Ensure APP_KEY exists and is populated
+ensure_app_key() {
+  if ! grep -q "^APP_KEY=" .env; then
+    printf '\nAPP_KEY=\n' >>.env
+  fi
+
+  current_key=$(grep "^APP_KEY=" .env | head -n1 | cut -d= -f2-)
+
+  case "$current_key" in
+    ""|"base64:")
+      php artisan key:generate --force || true
+      ;;
+  esac
+}
+
+ensure_app_key
 
 # Idempotent migrations
 php artisan migrate --force
