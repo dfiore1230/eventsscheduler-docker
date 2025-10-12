@@ -49,6 +49,50 @@ named Docker volumes.
 The container defaults to SQLite. If you would rather connect to an external MySQL or MariaDB instance, set `USE_SQLITE=0` and
 provide the usual database environment variables in `.env` before starting the stack.
 
+## Using the Prebuilt Docker Hub Image
+
+If you would prefer to start from the published image rather than building the
+Dockerfile in this repository, pull
+[`dfiore/eventsschedule:latest`](https://hub.docker.com/r/dfiore/eventsschedule)
+from Docker Hub. You can create a thin wrapper Dockerfile that layers
+environment defaults, assets, or other customizations on top of the prebuilt
+runtime:
+
+```Dockerfile
+FROM dfiore/eventsschedule:latest
+
+# Example override: copy a production-ready .env into the container
+# COPY .env.production /var/www/html/.env
+```
+
+See [`examples/Dockerfile.from-prebuilt`](examples/Dockerfile.from-prebuilt) for a
+fully annotated template that demonstrates common customization points while
+reusing the prebuilt container. When you are ready to run the full stack without
+rebuilding images, use the companion Compose file at
+[`examples/docker-compose.prebuilt.yml`](examples/docker-compose.prebuilt.yml):
+
+```bash
+cp .env.example .env
+docker compose -f examples/docker-compose.prebuilt.yml up -d
+```
+
+The Compose definition wires the published image into the standard `app`,
+`web`, and `scheduler` services while leaving the MariaDB dependency unchanged.
+
+Prefer the single-container topology? A matching prebuilt Compose file is
+available at
+[`examples/docker-compose.single-prebuilt.yml`](examples/docker-compose.single-prebuilt.yml):
+
+```bash
+cp .env.example .env
+mkdir -p bind/storage bind/database
+docker compose -f examples/docker-compose.single-prebuilt.yml up -d
+```
+
+This version layers the published image with bind mounts for the SQLite
+database and Laravel storage directories so you can persist uploads without
+creating named Docker volumes.
+
 ## Service Overview
 
 | Service    | Description                                                                 |
