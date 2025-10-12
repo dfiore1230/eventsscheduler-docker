@@ -18,14 +18,14 @@ if ($code === false) {
     exit(1);
 }
 
-$pattern = '/json_decode\(([^)]+)\)->name/';
+$pattern = '/(json_decode\(((?>[^()]+|(?R))*)\))\s*(\?->|->)\s*name/';
 $updated = false;
 
 $code = preg_replace_callback($pattern, function (array $matches) use (&$updated) {
     $updated = true;
-    $argument = trim($matches[1]);
+    $call = trim($matches[1]);
 
-    return '$this->resolveLocalizedName(' . $argument . ')';
+    return '$this->resolveLocalizedName(' . $call . ')';
 }, $code);
 
 if ($code === null) {
@@ -43,13 +43,21 @@ if (strpos($code, 'function resolveLocalizedName(') === false) {
     /**
      * Safely extract a translated "name" value from JSON or nested structures.
      */
-    private function resolveLocalizedName($value): string
+    private function resolveLocalizedName($value): ?string
     {
+        if ($value === null) {
+            return null;
+        }
+
         if (is_string($value)) {
             $decoded = json_decode($value, true);
 
             if (json_last_error() === JSON_ERROR_NONE) {
                 $value = $decoded;
+            } else {
+                $value = trim($value);
+
+                return $value;
             }
         }
 
@@ -57,39 +65,55 @@ if (strpos($code, 'function resolveLocalizedName(') === false) {
             $value = $value->jsonSerialize();
         }
 
+        if ($value instanceof \Traversable) {
+            $value = iterator_to_array($value);
+        }
+
         if ($value instanceof \stdClass) {
             $value = get_object_vars($value);
         }
 
         if (is_array($value)) {
+            $firstNonNull = null;
+
             if (isset($value['name']) && is_string($value['name'])) {
-                return trim($value['name']);
+                $candidate = trim($value['name']);
+
+                if ($candidate !== '') {
+                    return $candidate;
+                }
+
+                $firstNonNull = $candidate;
             }
 
             foreach ($value as $candidate) {
-                if (is_string($candidate) && trim($candidate) !== '') {
-                    return trim($candidate);
+                $resolved = $this->resolveLocalizedName($candidate);
+
+                if ($resolved === null) {
+                    continue;
                 }
 
-                if (is_array($candidate)) {
-                    foreach ($candidate as $nested) {
-                        if (is_string($nested) && trim($nested) !== '') {
-                            return trim($nested);
-                        }
-                    }
+                if ($resolved !== '') {
+                    return $resolved;
                 }
 
-                if (is_object($candidate) && isset($candidate->name) && is_string($candidate->name)) {
-                    return trim($candidate->name);
+                if ($firstNonNull === null) {
+                    $firstNonNull = $resolved;
                 }
             }
+
+            return $firstNonNull;
         }
 
         if (is_object($value) && isset($value->name) && is_string($value->name)) {
             return trim($value->name);
         }
 
-        return is_string($value) ? trim($value) : '';
+        if (is_string($value)) {
+            return trim($value);
+        }
+
+        return null;
     }
 METHOD;
 
