@@ -30,6 +30,25 @@ This repository provides a Docker-based runtime for the [EventSchedule](https://
 
 The first startup can take several minutes while dependencies are installed and assets are compiled.
 
+## Single-Container Stack (SQLite + Bind Mounts)
+
+For lightweight environments you can run the web server, PHP-FPM worker, and scheduler inside a single container. This variant
+stores uploads and the SQLite database on bind-mounted directories so that data persists between rebuilds without relying on
+named Docker volumes.
+
+1. Prepare the bind-mount directories (they can live anywhere on your host):
+   ```bash
+   mkdir -p bind/storage bind/database
+   ```
+2. Start the single-container stack:
+   ```bash
+   docker compose -f docker-compose.single.yml up --build -d
+   ```
+3. Access the application at [http://localhost:8080](http://localhost:8080).
+
+The container defaults to SQLite. If you would rather connect to an external MySQL or MariaDB instance, set `USE_SQLITE=0` and
+provide the usual database environment variables in `.env` before starting the stack.
+
 ## Service Overview
 
 | Service    | Description                                                                 |
