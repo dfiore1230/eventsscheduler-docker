@@ -15,7 +15,7 @@ Route::middleware('guest')->group(function () {
         // Fallback: call the app's controller if the view isn't present
         if (class_exists(\App\Http\Controllers\Auth\RegisteredUserController::class)) {
             return app(\App\Http\Controllers\Auth\RegisteredUserController::class)
-                ->create(request());
+                ->create();
         }
 
         abort(404);
