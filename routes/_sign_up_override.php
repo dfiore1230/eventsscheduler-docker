@@ -1,5 +1,6 @@
 <?php
 
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Route;
 
 Route::middleware('guest')->group(function () {
@@ -9,13 +10,24 @@ Route::middleware('guest')->group(function () {
                 return view('auth.register');
             }
         } catch (\Throwable $e) {
-            // fall through to controller
+            Log::warning('Sign up override failed rendering auth.register view; falling back to controller.', [
+                'exception' => $e,
+            ]);
         }
 
         // Fallback: call the app's controller if the view isn't present
         if (class_exists(\App\Http\Controllers\Auth\RegisteredUserController::class)) {
-            return app(\App\Http\Controllers\Auth\RegisteredUserController::class)
-                ->create(request());
+            try {
+                return app()->call([
+                    app(\App\Http\Controllers\Auth\RegisteredUserController::class),
+                    'create',
+                ]);
+            } catch (\Throwable $e) {
+                Log::error('Sign up override failed calling RegisteredUserController::create.', [
+                    'exception' => $e,
+                ]);
+                throw $e;
+            }
         }
 
         abort(404);
