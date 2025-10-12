@@ -1,21 +1,21 @@
 name: Build and Publish Docker image
 
 on:
-  push:
+  pull_request:
+    types: [closed]
     branches:
       - main
-  pull_request:
-  workflow_dispatch:
 
 permissions:
   contents: read
 
 env:
   REGISTRY_IMAGE: ${{ secrets.DOCKERHUB_REPOSITORY != '' && secrets.DOCKERHUB_REPOSITORY || format('ghcr.io/{0}', github.repository) }}
-  SHOULD_PUSH: ${{ github.event_name != 'pull_request' && secrets.DOCKERHUB_USERNAME != '' && secrets.DOCKERHUB_TOKEN != '' && secrets.DOCKERHUB_REPOSITORY != '' }}
+  SHOULD_PUSH: ${{ github.event.pull_request.merged == true && secrets.DOCKERHUB_USERNAME != '' && secrets.DOCKERHUB_TOKEN != '' && secrets.DOCKERHUB_REPOSITORY != '' }}
 
 jobs:
   build:
+    if: github.event.pull_request.merged == true
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
