@@ -42,6 +42,10 @@ class AppServiceProvider extends ServiceProvider
             if (!array_key_exists('venues', $data)) {
                 $view->with('venues', collect());
             }
+
+            if (!array_key_exists('curators', $data)) {
+                $view->with('curators', collect());
+            }
         });
 
         if (!class_exists(\App\Models\Setting::class)) {
