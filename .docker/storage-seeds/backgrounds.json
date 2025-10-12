@@ -1,0 +1,32 @@
+[
+  {
+    "label": "Sunset Glow",
+    "value": "linear-gradient(135deg, #ff9a9e 0%, #fad0c4 100%)",
+    "colors": ["#ff9a9e", "#fad0c4"]
+  },
+  {
+    "label": "Ocean Breeze",
+    "value": "linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)",
+    "colors": ["#4facfe", "#00f2fe"]
+  },
+  {
+    "label": "Emerald Mist",
+    "value": "linear-gradient(135deg, #84fab0 0%, #8fd3f4 100%)",
+    "colors": ["#84fab0", "#8fd3f4"]
+  },
+  {
+    "label": "Violet Dream",
+    "value": "linear-gradient(135deg, #a18cd1 0%, #fbc2eb 100%)",
+    "colors": ["#a18cd1", "#fbc2eb"]
+  },
+  {
+    "label": "Golden Hour",
+    "value": "linear-gradient(135deg, #f6d365 0%, #fda085 100%)",
+    "colors": ["#f6d365", "#fda085"]
+  },
+  {
+    "label": "Aurora",
+    "value": "linear-gradient(135deg, #30cfd0 0%, #330867 100%)",
+    "colors": ["#30cfd0", "#330867"]
+  }
+]
