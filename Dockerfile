@@ -95,9 +95,11 @@ RUN chown -R www-data:www-data /var/www/html
 # Entrypoint + helpers
 COPY docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
 COPY scripts/bootstrap.sh /usr/local/bin/bootstrap.sh
+COPY scripts/internal-db.sh /usr/local/bin/internal-db.sh
 COPY scripts/start-single.sh /usr/local/bin/start-single.sh
 RUN chmod +x /usr/local/bin/docker-entrypoint.sh \
     /usr/local/bin/bootstrap.sh \
+    /usr/local/bin/internal-db.sh \
     /usr/local/bin/start-single.sh
 
 # Default command
@@ -117,8 +119,11 @@ RUN test -d /var/www/html/public
 # Stage: single (nginx + php-fpm + scheduler)
 # =========================
 FROM app AS single
-RUN apk add --no-cache nginx supervisor \
- && mkdir -p /run/nginx /var/log/supervisor
+ENV INTERNAL_DB=1 \
+    DB_HOST=127.0.0.1
+RUN apk add --no-cache nginx supervisor mariadb mariadb-client mariadb-backup \
+ && mkdir -p /run/nginx /var/log/supervisor /run/mysqld /var/lib/mysql \
+ && chown -R mysql:mysql /run/mysqld /var/lib/mysql
 COPY nginx.conf /etc/nginx/conf.d/default.conf
 COPY scripts/supervisord-single.conf /etc/supervisord.conf
 EXPOSE 80

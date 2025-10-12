@@ -52,6 +52,10 @@ bootstrap_app() {
     done
   fi
 
+  # Clear any cached configuration so new environment changes (like switching
+  # to SQLite) take effect before running artisan commands.
+  php artisan config:clear || true
+
   if ! grep -q "^APP_KEY=base64:" .env || grep -q "^APP_KEY=\s*$" .env; then
     php artisan key:generate --force || true
   fi

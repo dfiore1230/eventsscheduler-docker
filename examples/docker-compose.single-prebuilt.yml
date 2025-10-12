@@ -11,7 +11,9 @@ services:
     pull_policy: if_not_present
     env_file: ../.env
     environment:
-      USE_SQLITE: "1"
+      INTERNAL_DB: 1
+      DB_HOST: 127.0.0.1
+      DB_PASSWORD: ${DB_PASSWORD:-change_me}
     ports:
       - "8080:80"
     volumes:
@@ -19,10 +21,8 @@ services:
         source: ../bind/storage
         target: /var/www/html/storage
       - type: bind
-        source: ../bind/database
-        target: /var/www/html/database
+        source: ../bind/mysql
+        target: /var/lib/mysql
     entrypoint: ["/usr/local/bin/docker-entrypoint.sh"]
     command: ["/usr/local/bin/start-single.sh"]
     restart: unless-stopped
-
-volumes: {}
