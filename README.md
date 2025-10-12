@@ -110,6 +110,14 @@ The Dockerfile clones the upstream EventSchedule repository. You can change the 
   run was interrupted and the lock remains, the entrypoint automatically clears it after 15 minutes so dependencies can be
   reinstalled. You can override the timeout by setting `VENDOR_LOCK_TIMEOUT_SECONDS` in `.env`.
 
+## Troubleshooting
+
+- **"No such image: dfiore/events-scheduler:app" when starting the stack**: Earlier revisions of this project published Docker
+  images under the `dfiore/events-scheduler` repository. If your shell still has `APP_IMAGE`, `WEB_IMAGE`, or `SCHEDULER_IMAGE`
+  environment variables pointing to those deprecated tags, Docker Compose will try to start the old images and fail. Remove the
+  overrides (for example `unset APP_IMAGE WEB_IMAGE SCHEDULER_IMAGE`) or update them to the new repository name before running
+  `docker compose up --build`. Compose will then build the images locally or pull the updated tags, depending on your workflow.
+
 ### Validation checklist after applying fixes
 
 When you make changes to the Docker environment or upstream application, use the following loop to validate that the stack picks
