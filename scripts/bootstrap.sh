@@ -6,7 +6,14 @@ bootstrap_app() {
   orig_dir=$(pwd)
   cd /var/www/html
 
-  mkdir -p storage bootstrap/cache database
+  mkdir -p \
+    storage \
+    storage/logs \
+    storage/framework/cache \
+    storage/framework/sessions \
+    storage/framework/views \
+    bootstrap/cache \
+    database
 
   # Ensure .env exists
   if [ ! -f .env ]; then
