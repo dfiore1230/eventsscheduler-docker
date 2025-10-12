@@ -23,6 +23,14 @@ bootstrap_app() {
     cp .docker/storage-seeds/headers.json storage/headers.json
   fi
 
+  if [ ! -f storage/backgrounds.json ]; then
+    if [ -f .docker/storage-seeds/backgrounds.json ]; then
+      cp .docker/storage-seeds/backgrounds.json storage/backgrounds.json
+    else
+      printf '[]' > storage/backgrounds.json
+    fi
+  fi
+
   # Ensure .env exists
   if [ ! -f .env ]; then
     cp .env.example .env
