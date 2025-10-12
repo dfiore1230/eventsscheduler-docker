@@ -38,12 +38,19 @@ cleanup_vendor_lock() {
   fi
 }
 
+reset_vendor_directory() {
+  # Remove any vendor contents that might have been left behind by a
+  # previous failed install while keeping the lock directory in place.
+  find vendor -mindepth 1 -maxdepth 1 ! -name "$(basename "$vendor_lock")" -exec rm -rf {} + 2>/dev/null || true
+}
+
 acquire_vendor_dependencies() {
   # Always ensure we clean up the lock if we are the ones that created it
   trap cleanup_vendor_lock EXIT INT TERM
 
   while [ ! -f vendor/autoload.php ]; do
     if mkdir "$vendor_lock" 2>/dev/null; then
+      reset_vendor_directory
       date +%s >"$vendor_lock/.timestamp" 2>/dev/null || true
       if [ -d /opt/app-bootstrap/vendor ]; then
         echo "Populating vendor directory from image cache..."
@@ -57,9 +64,17 @@ acquire_vendor_dependencies() {
         composer install --no-dev --prefer-dist --no-interaction --optimize-autoloader
       fi
 
+      if [ -f vendor/autoload.php ]; then
+        cleanup_vendor_lock
+        trap - EXIT INT TERM
+        return 0
+      fi
+
+      echo "Composer dependencies did not produce vendor/autoload.php. Resetting vendor directory and retrying..."
+      reset_vendor_directory
       cleanup_vendor_lock
-      trap - EXIT INT TERM
-      return 0
+      sleep 2
+      continue
     fi
 
     if [ -d "$vendor_lock" ]; then
