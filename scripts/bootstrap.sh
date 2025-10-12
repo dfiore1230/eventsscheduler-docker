@@ -39,17 +39,28 @@ bootstrap_app() {
   if [ "${USE_SQLITE:-0}" != "1" ] && [ -n "$DB_HOST" ]; then
     echo "Waiting for DB at ${DB_HOST}:${DB_PORT:-3306}..."
     i=0
+    db_ready=0
     while : ; do
       if php -r "try { new PDO('mysql:host=${DB_HOST};port=${DB_PORT:-3306}', '${DB_USERNAME:-eventschedule}', '${DB_PASSWORD:-change_me}'); } catch (Exception \$e) { exit(1); }"; then
+        db_ready=1
         break
       fi
       i=$((i+1))
       if [ "$i" -ge 60 ]; then
-        echo "DB wait timeout after 60s, continuing..."
         break
       fi
       sleep 1
     done
+
+    if [ "$db_ready" -ne 1 ]; then
+      echo "Failed to connect to the database after 60s." >&2
+      if command -v getent >/dev/null 2>&1 && ! getent hosts "$DB_HOST" >/dev/null 2>&1; then
+        echo "The hostname '${DB_HOST}' could not be resolved. Ensure DB_HOST points to your database service or container." >&2
+      else
+        echo "The hostname '${DB_HOST}' resolves, but the service is unreachable. Verify the database container is running and accepting connections." >&2
+      fi
+      exit 1
+    fi
   fi
 
   if [ "${USE_SQLITE:-0}" != "1" ]; then
