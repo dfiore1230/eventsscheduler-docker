@@ -34,6 +34,9 @@ RUN git clone --depth 1 --branch "${APP_REF}" https://github.com/dfiore1230/even
 # Fix "dubious ownership"
 RUN git config --global --add safe.directory /var/www/html
 
+# Seed runtime storage defaults
+COPY .docker/storage-seeds /var/www/html/.docker/storage-seeds
+
 # Replace AppServiceProvider with a version compatible with non-interactive builds
 COPY patches/AppServiceProvider.php /tmp/AppServiceProvider.php
 RUN cp /tmp/AppServiceProvider.php /var/www/html/app/Providers/AppServiceProvider.php \

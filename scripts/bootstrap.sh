@@ -15,6 +15,10 @@ bootstrap_app() {
     bootstrap/cache \
     database
 
+  if [ ! -f storage/gradients.json ] && [ -f .docker/storage-seeds/gradients.json ]; then
+    cp .docker/storage-seeds/gradients.json storage/gradients.json
+  fi
+
   # Ensure .env exists
   if [ ! -f .env ]; then
     cp .env.example .env
