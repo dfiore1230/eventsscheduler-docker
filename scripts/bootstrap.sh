@@ -52,6 +52,35 @@ bootstrap_app() {
     done
   fi
 
+  if [ "${USE_SQLITE:-0}" != "1" ]; then
+    php -r '
+      $path = ".env";
+      if (!file_exists($path)) {
+        return;
+      }
+
+      $env = file_get_contents($path);
+      $set = function($key, $value) use (&$env) {
+        $pattern = "/^" . preg_quote($key, "/") . "=.*/m";
+        $escapedValue = addcslashes($value, "\\\\\n\r");
+        if (preg_match($pattern, $env)) {
+          $env = preg_replace($pattern, $key . "=" . $escapedValue, $env, 1);
+        } else {
+          $env .= "\n" . $key . "=" . $escapedValue;
+        }
+      };
+
+      foreach (["DB_CONNECTION", "DB_HOST", "DB_PORT", "DB_DATABASE", "DB_USERNAME", "DB_PASSWORD"] as $key) {
+        $value = getenv($key);
+        if ($value !== false && $value !== "") {
+          $set($key, $value);
+        }
+      }
+
+      file_put_contents($path, $env);
+    ' || true
+  fi
+
   # Clear any cached configuration so new environment changes (like switching
   # to SQLite) take effect before running artisan commands.
   php artisan config:clear || true
