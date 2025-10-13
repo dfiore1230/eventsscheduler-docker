@@ -19,9 +19,17 @@ if ($code === false) {
 }
 
 $pattern = '/(json_decode\(((?>[^()]+|(?R))*)\))\s*(\?->|->)\s*name/';
+$optionalPattern = '/optional\s*\(\s*(json_decode\(((?>[^()]+|(?R))*)\))\s*\)\s*->\s*name/i';
 $updated = false;
 
 $code = preg_replace_callback($pattern, function (array $matches) use (&$updated) {
+    $updated = true;
+    $call = trim($matches[1]);
+
+    return '$this->resolveLocalizedName(' . $call . ')';
+}, $code);
+
+$code = preg_replace_callback($optionalPattern, function (array $matches) use (&$updated) {
     $updated = true;
     $call = trim($matches[1]);
 
@@ -40,8 +48,17 @@ if (preg_match_all($assignmentPattern, $code, $assignmentMatches)) {
 
     foreach ($variables as $variable) {
         $variablePattern = '/\$(' . preg_quote($variable, '/') . ')\s*(\?->|->)\s*name/';
+        $optionalVariablePattern = '/optional\s*\(\s*\$(' . preg_quote($variable, '/') . ')\s*\)\s*->\s*name/i';
 
         if (!preg_match_all($variablePattern, $code, $propertyMatches, PREG_OFFSET_CAPTURE)) {
+            $propertyMatches = [0 => []];
+        }
+
+        if (preg_match_all($optionalVariablePattern, $code, $optionalMatches, PREG_OFFSET_CAPTURE)) {
+            $propertyMatches[0] = array_merge($propertyMatches[0], $optionalMatches[0]);
+        }
+
+        if (!$propertyMatches[0]) {
             continue;
         }
 
@@ -64,7 +81,6 @@ if (preg_match_all($assignmentPattern, $code, $assignmentMatches)) {
             if ($skip) {
                 continue;
             }
-
             $replacements[] = [$offset, strlen($text), '$this->resolveLocalizedName($' . $variable . ')'];
         }
 
