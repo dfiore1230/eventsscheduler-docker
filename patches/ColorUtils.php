@@ -8,6 +8,7 @@ use Illuminate\Support\Facades\Http;
 class ColorUtils
 {
     private const REMOTE_ENDPOINT = 'https://raw.githubusercontent.com/ghosh/uiGradients/master/gradients.json';
+    private const LOCAL_GRADIENT_FILE = 'storage/gradients.json';
 
     private const FALLBACK_GRADIENTS = [
         ['#FF5F6D', '#FFC371'],
@@ -29,7 +30,11 @@ class ColorUtils
      */
     public static function randomGradient(): array
     {
-        $gradients = self::fetchGradients();
+        $gradients = self::loadLocalGradients();
+
+        if (empty($gradients)) {
+            $gradients = self::fetchGradients();
+        }
 
         if (empty($gradients)) {
             $gradients = self::FALLBACK_GRADIENTS;
@@ -52,6 +57,56 @@ class ColorUtils
         $stops = implode(', ', $colors);
 
         return sprintf('linear-gradient(135deg, %s)', $stops);
+    }
+
+    /**
+     * Attempt to read gradients from the local storage directory.
+     *
+     * @return array<int, array<int, string>>
+     */
+    private static function loadLocalGradients(): array
+    {
+        $path = base_path(self::LOCAL_GRADIENT_FILE);
+
+        if (!is_file($path) || !is_readable($path)) {
+            return [];
+        }
+
+        $contents = @file_get_contents($path);
+
+        if ($contents === false || $contents === '') {
+            return [];
+        }
+
+        $decoded = json_decode($contents);
+
+        if (json_last_error() !== JSON_ERROR_NONE) {
+            return [];
+        }
+
+        $entries = [];
+
+        if ($decoded instanceof \Traversable) {
+            $decoded = iterator_to_array($decoded);
+        }
+
+        if ($decoded instanceof \stdClass) {
+            $decoded = get_object_vars($decoded);
+        }
+
+        if (!is_array($decoded)) {
+            return [];
+        }
+
+        foreach ($decoded as $entry) {
+            $colors = self::extractColors($entry);
+
+            if (count($colors) >= 2) {
+                $entries[] = $colors;
+            }
+        }
+
+        return $entries;
     }
 
     /**
@@ -114,6 +169,20 @@ class ColorUtils
 
         if (isset($entry['colors']) && is_array($entry['colors'])) {
             return self::sanitizeColors($entry['colors']);
+        }
+
+        $pairKeys = [
+            ['from', 'to'],
+            ['start', 'end'],
+            ['left', 'right'],
+        ];
+
+        foreach ($pairKeys as $pair) {
+            [$firstKey, $secondKey] = $pair;
+
+            if (isset($entry[$firstKey], $entry[$secondKey])) {
+                return self::sanitizeColors([$entry[$firstKey], $entry[$secondKey]]);
+            }
         }
 
         if (array_is_list($entry)) {

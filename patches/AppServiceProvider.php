@@ -25,11 +25,24 @@ class AppServiceProvider extends ServiceProvider
     {
         Schema::defaultStringLength(191);
 
-        // Allow Docker image patch script to gate HTTPS forcing behind env var.
-        URL::forceScheme('https');
+        $forceHttps = config('app.force_https');
+
+        if ($forceHttps === null) {
+            $forceHttps = (bool) env('FORCE_HTTPS', false);
+        }
+
+        if ($forceHttps) {
+            URL::forceScheme('https');
+        }
 
         if ($this->app->runningInConsole()) {
             return;
+        }
+
+        foreach (['schedules', 'venues', 'curators'] as $key) {
+            if (!View::shared($key)) {
+                View::share($key, collect());
+            }
         }
 
         View::composer('*', function (ViewView $view): void {
