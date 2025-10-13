@@ -20,8 +20,21 @@ if ($code === false) {
 
 $chainPattern = '(?:(?:\s*(?:\?->|->)\s*[A-Za-z_\x80-\xff][A-Za-z0-9_\x80-\xff]*)|\s*\[[^\]]+\])*';
 $jsonDecodePattern = '(?:\\)?json_decode';
-$pattern = '/(?<expression>' . $jsonDecodePattern . '\(((?>[^()]+|(?R))*)\)' . $chainPattern . ')\s*(\?->|->)\s*name/i';
-$optionalPattern = '/optional\s*\(\s*(?<expression>' . $jsonDecodePattern . '\(((?>[^()]+|(?R))*)\)' . $chainPattern . ')\s*\)\s*(\?->|->)\s*name/i';
+$pattern = implode('', [
+    '/(?<expression>',
+    $jsonDecodePattern,
+    '\(((?>[^()]+|(?R))*)\)',
+    $chainPattern,
+    ')\s*(\?->|->)\s*name/i',
+]);
+
+$optionalPattern = implode('', [
+    '/optional\s*\(\s*(?<expression>',
+    $jsonDecodePattern,
+    '\(((?>[^()]+|(?R))*)\)',
+    $chainPattern,
+    ')\s*\)\s*(\?->|->)\s*name/i',
+]);
 $updated = false;
 
 /**
