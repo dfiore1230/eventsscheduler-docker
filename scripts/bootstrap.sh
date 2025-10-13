@@ -15,12 +15,20 @@ bootstrap_app() {
     bootstrap/cache \
     database
 
-  if [ ! -f storage/gradients.json ] && [ -f .docker/storage-seeds/gradients.json ]; then
-    cp .docker/storage-seeds/gradients.json storage/gradients.json
+  if [ ! -f storage/gradients.json ]; then
+    if [ -f .docker/storage-seeds/gradients.json ]; then
+      cp .docker/storage-seeds/gradients.json storage/gradients.json
+    else
+      printf '[]' > storage/gradients.json
+    fi
   fi
 
-  if [ ! -f storage/headers.json ] && [ -f .docker/storage-seeds/headers.json ]; then
-    cp .docker/storage-seeds/headers.json storage/headers.json
+  if [ ! -f storage/headers.json ]; then
+    if [ -f .docker/storage-seeds/headers.json ]; then
+      cp .docker/storage-seeds/headers.json storage/headers.json
+    else
+      printf '[]' > storage/headers.json
+    fi
   fi
 
   if [ ! -f storage/backgrounds.json ]; then
