@@ -61,8 +61,8 @@ function applyPattern(
         restore_error_handler();
 
         if ($hadError || $result === null) {
-            fwrite(STDERR, "Failed to process RoleController.php\n");
-            exit(1);
+            fwrite(STDERR, "Warning: unable to rewrite RoleController.php with pattern {$pattern}. Skipping.\n");
+            return $original;
         }
     }
 
@@ -102,8 +102,9 @@ function matchAll(
         restore_error_handler();
 
         if ($hadError || $count === false) {
-            fwrite(STDERR, "Failed to process RoleController.php\n");
-            exit(1);
+            fwrite(STDERR, "Warning: unable to scan RoleController.php with pattern {$pattern}. Skipping.\n");
+            $matches = [];
+            return false;
         }
     }
 
