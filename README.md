@@ -110,6 +110,15 @@ The Dockerfile clones the upstream EventSchedule repository. You can change the 
 - **Database access**: Connect to MariaDB on `localhost:3306` (when exposed) using credentials defined in `.env`.
 - **Updating dependencies**: Rebuild the `app` image (`docker compose build app`) after modifying Composer or npm dependencies.
 
+## Troubleshooting
+
+- **`docker: command not found`**: Install the Docker Engine and Docker Compose
+  plugin for your platform and ensure that the `docker` CLI is available on your
+  shell `PATH`. On Linux, this typically means installing the latest Docker
+  packages from the official repositories and reloading your shell session after
+  installation. On macOS and Windows, installing [Docker Desktop](https://www.docker.com/products/docker-desktop/)
+  provides both the engine and the Compose plugin.
+
 ## Publishing Images with GitHub Actions
 
 This repository ships with a GitHub Actions workflow named **Build and Publish
