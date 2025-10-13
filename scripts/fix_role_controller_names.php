@@ -197,8 +197,9 @@ if (matchAll($assignmentPattern, $assignmentFallback, $code, PREG_SET_ORDER, $as
 
     foreach (array_keys($expressions) as $expression) {
         $expressionPattern = buildExpressionPattern($expression);
-        $variablePattern = '/(' . $expressionPattern . ')\s*(\?->|->)\s*name/i';
-        $optionalVariablePattern = '/optional\s*\(\s*(' . $expressionPattern . ')\s*\)\s*(\?->|->)\s*name/i';
+        $accessChainPattern = '(?:\s*(?:->\s*[A-Za-z_\x80-\xff][A-Za-z0-9_\x80-\xff]*|\[[^\]]+\]))*';
+        $variablePattern = '/(' . $expressionPattern . $accessChainPattern . ')\s*(\?->|->)\s*name/i';
+        $optionalVariablePattern = '/optional\s*\(\s*(' . $expressionPattern . $accessChainPattern . ')\s*\)\s*(\?->|->)\s*name/i';
 
         $replacements = [];
 
