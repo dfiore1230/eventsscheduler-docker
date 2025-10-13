@@ -53,6 +53,11 @@ COPY scripts/fix_role_controller_names.php /tmp/fix_role_controller_names.php
 RUN php /tmp/fix_role_controller_names.php /var/www/html \
  && rm /tmp/fix_role_controller_names.php
 
+# Guard home view templates against missing data
+COPY scripts/normalize_home_view.php /tmp/normalize_home_view.php
+RUN php /tmp/normalize_home_view.php /var/www/html \
+ && rm /tmp/normalize_home_view.php
+
 # Gate any forceScheme('https') behind FORCE_HTTPS
 COPY scripts/force_https_patch.php /tmp/force_https_patch.php
 RUN php /tmp/force_https_patch.php /var/www/html \
