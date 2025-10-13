@@ -22,6 +22,25 @@ $pattern = '/(json_decode\(((?>[^()]+|(?R))*)\))\s*(\?->|->)\s*name/';
 $optionalPattern = '/optional\s*\(\s*(json_decode\(((?>[^()]+|(?R))*)\))\s*\)\s*->\s*name/i';
 $updated = false;
 
+/**
+ * Convert an assignment target expression into a regex fragment that tolerates whitespace.
+ */
+function buildExpressionPattern(string $expression): string
+{
+    $pattern = preg_quote($expression, '/');
+
+    // Allow arbitrary whitespace where the original expression used spaces.
+    $pattern = preg_replace('/\\\s+/', '\\s*', $pattern);
+
+    $replacements = [
+        '\\-\\>' => '\\s*->\\s*',
+        '\\[' => '\\s*\\[\\s*',
+        '\\]' => '\\s*\\]\\s*',
+    ];
+
+    return str_replace(array_keys($replacements), array_values($replacements), $pattern);
+}
+
 $code = preg_replace_callback($pattern, function (array $matches) use (&$updated) {
     $updated = true;
     $call = trim($matches[1]);
@@ -41,47 +60,59 @@ if ($code === null) {
     exit(1);
 }
 
-$assignmentPattern = '/\$(\w+)\s*=\s*json_decode\(((?>[^()]+|(?R))*)\)\s*;/';
+$assignmentPattern = '/(?<target>\$[A-Za-z_\x80-\xff][A-Za-z0-9_\x80-\xff]*(?:\s*(?:->\s*[A-Za-z_\x80-\xff][A-Za-z0-9_\x80-\xff]*|\[[^\]]+\]))*)\s*=\s*json_decode\(((?>[^()]+|(?R))*)\)\s*;/';
 
-if (preg_match_all($assignmentPattern, $code, $assignmentMatches)) {
-    $variables = array_unique($assignmentMatches[1]);
+if (preg_match_all($assignmentPattern, $code, $assignmentMatches, PREG_SET_ORDER)) {
+    $expressions = [];
 
-    foreach ($variables as $variable) {
-        $variablePattern = '/\$(' . preg_quote($variable, '/') . ')\s*(\?->|->)\s*name/';
-        $optionalVariablePattern = '/optional\s*\(\s*\$(' . preg_quote($variable, '/') . ')\s*\)\s*->\s*name/i';
+    foreach ($assignmentMatches as $match) {
+        $expression = trim($match['target'] ?? $match[1] ?? '');
 
-        if (!preg_match_all($variablePattern, $code, $propertyMatches, PREG_OFFSET_CAPTURE)) {
-            $propertyMatches = [0 => []];
+        if ($expression !== '') {
+            $expressions[$expression] = true;
         }
+    }
 
-        if (preg_match_all($optionalVariablePattern, $code, $optionalMatches, PREG_OFFSET_CAPTURE)) {
-            $propertyMatches[0] = array_merge($propertyMatches[0], $optionalMatches[0]);
-        }
-
-        if (!$propertyMatches[0]) {
-            continue;
-        }
+    foreach (array_keys($expressions) as $expression) {
+        $expressionPattern = buildExpressionPattern($expression);
+        $variablePattern = '/(' . $expressionPattern . ')\s*(\?->|->)\s*name/';
+        $optionalVariablePattern = '/optional\s*\(\s*(' . $expressionPattern . ')\s*\)\s*->\s*name/i';
 
         $replacements = [];
 
-        foreach ($propertyMatches[0] as $match) {
-            [$text, $offset] = $match;
+        if (preg_match_all($variablePattern, $code, $propertyMatches, PREG_OFFSET_CAPTURE)) {
+            foreach ($propertyMatches[0] as $index => $match) {
+                [$text, $offset] = $match;
+                $before = substr($code, 0, $offset);
 
-            $before = substr($code, 0, $offset);
+                $skip = false;
 
-            $skip = false;
-
-            foreach (['isset', 'empty', 'property_exists'] as $fn) {
-                if (preg_match('/' . $fn . '\s*\($/i', $before)) {
-                    $skip = true;
-                    break;
+                foreach (['isset', 'empty', 'property_exists'] as $fn) {
+                    if (preg_match('/' . $fn . '\s*\($/i', $before)) {
+                        $skip = true;
+                        break;
+                    }
                 }
-            }
 
-            if ($skip) {
-                continue;
+                if ($skip) {
+                    continue;
+                }
+
+                $expressionText = $propertyMatches[1][$index][0] ?? '';
+                $replacement = '$this->resolveLocalizedName(' . trim($expressionText) . ')';
+
+                $replacements[$offset] = [$offset, strlen($text), $replacement];
             }
-            $replacements[] = [$offset, strlen($text), '$this->resolveLocalizedName($' . $variable . ')'];
+        }
+
+        if (preg_match_all($optionalVariablePattern, $code, $optionalMatches, PREG_OFFSET_CAPTURE)) {
+            foreach ($optionalMatches[0] as $index => $match) {
+                [$text, $offset] = $match;
+                $inner = $optionalMatches[1][$index][0] ?? '';
+                $replacement = '$this->resolveLocalizedName(' . trim($inner) . ')';
+
+                $replacements[$offset] = [$offset, strlen($text), $replacement];
+            }
         }
 
         if (!$replacements) {
@@ -90,7 +121,9 @@ if (preg_match_all($assignmentPattern, $code, $assignmentMatches)) {
 
         $updated = true;
 
-        foreach (array_reverse($replacements) as [$offset, $length, $replacement]) {
+        krsort($replacements);
+
+        foreach ($replacements as [$offset, $length, $replacement]) {
             $code = substr_replace($code, $replacement, $offset, $length);
         }
     }
