@@ -20,10 +20,108 @@ if ($code === false) {
 
 $chainPattern = '(?:(?:\s*(?:\?->|->)\s*[A-Za-z_\x80-\xff][A-Za-z0-9_\x80-\xff]*)|\s*\[[^\]]+\])*';
 $jsonDecodePattern = '(?:\\)?json_decode';
+$recursiveCallPattern = '\(((?>[^()]+|(?R))*)\)';
+$fallbackCallPattern = '\((?:[^()]|\([^()]*\))*\)';
+
+/**
+ * Apply a pattern that may fail to compile on older PCRE builds, with a
+ * graceful fallback that uses a less capable (but broadly compatible)
+ * alternative. Warnings from compilation failures are trapped to avoid
+ * polluting the build log while still surfacing fatal errors when both
+ * patterns are unusable.
+ */
+function applyPattern(
+    string $pattern,
+    string $fallbackPattern,
+    callable $callback,
+    string $code
+): string {
+    $original = $code;
+    $hadError = false;
+
+    $handler = static function (int $severity, string $message) use (&$hadError): bool {
+        if ($severity === E_WARNING && strpos($message, 'preg_') !== false) {
+            $hadError = true;
+            return true;
+        }
+
+        return false;
+    };
+
+    set_error_handler($handler, E_WARNING);
+    $result = preg_replace_callback($pattern, $callback, $code);
+    restore_error_handler();
+
+    if ($hadError || $result === null) {
+        $hadError = false;
+        $code = $original;
+
+        set_error_handler($handler, E_WARNING);
+        $result = preg_replace_callback($fallbackPattern, $callback, $code);
+        restore_error_handler();
+
+        if ($hadError || $result === null) {
+            fwrite(STDERR, "Failed to process RoleController.php\n");
+            exit(1);
+        }
+    }
+
+    return $result;
+}
+
+/**
+ * Execute preg_match_all with a recursion-aware fallback.
+ */
+function matchAll(
+    string $pattern,
+    string $fallbackPattern,
+    string $code,
+    int $flags,
+    array &$matches
+): bool {
+    $hadError = false;
+
+    $handler = static function (int $severity, string $message) use (&$hadError): bool {
+        if ($severity === E_WARNING && strpos($message, 'preg_') !== false) {
+            $hadError = true;
+            return true;
+        }
+
+        return false;
+    };
+
+    set_error_handler($handler, E_WARNING);
+    $count = preg_match_all($pattern, $code, $matches, $flags);
+    restore_error_handler();
+
+    if ($hadError || $count === false) {
+        $hadError = false;
+
+        set_error_handler($handler, E_WARNING);
+        $count = preg_match_all($fallbackPattern, $code, $matches, $flags);
+        restore_error_handler();
+
+        if ($hadError || $count === false) {
+            fwrite(STDERR, "Failed to process RoleController.php\n");
+            exit(1);
+        }
+    }
+
+    return $count > 0;
+}
+
 $pattern = implode('', [
     '/(?<expression>',
     $jsonDecodePattern,
-    '\(((?>[^()]+|(?R))*)\)',
+    $recursiveCallPattern,
+    $chainPattern,
+    ')\s*(\?->|->)\s*name/i',
+]);
+
+$patternFallback = implode('', [
+    '/(?<expression>',
+    $jsonDecodePattern,
+    $fallbackCallPattern,
     $chainPattern,
     ')\s*(\?->|->)\s*name/i',
 ]);
@@ -31,7 +129,15 @@ $pattern = implode('', [
 $optionalPattern = implode('', [
     '/optional\s*\(\s*(?<expression>',
     $jsonDecodePattern,
-    '\(((?>[^()]+|(?R))*)\)',
+    $recursiveCallPattern,
+    $chainPattern,
+    ')\s*\)\s*(\?->|->)\s*name/i',
+]);
+
+$optionalFallback = implode('', [
+    '/optional\s*\(\s*(?<expression>',
+    $jsonDecodePattern,
+    $fallbackCallPattern,
     $chainPattern,
     ')\s*\)\s*(\?->|->)\s*name/i',
 ]);
@@ -56,28 +162,26 @@ function buildExpressionPattern(string $expression): string
     return str_replace(array_keys($replacements), array_values($replacements), $pattern);
 }
 
-$code = preg_replace_callback($pattern, function (array $matches) use (&$updated) {
+$code = applyPattern($pattern, $patternFallback, function (array $matches) use (&$updated) {
     $updated = true;
     $call = trim($matches['expression'] ?? $matches[1] ?? '');
 
     return '$this->resolveLocalizedName(' . $call . ')';
 }, $code);
 
-$code = preg_replace_callback($optionalPattern, function (array $matches) use (&$updated) {
+$code = applyPattern($optionalPattern, $optionalFallback, function (array $matches) use (&$updated) {
     $updated = true;
     $call = trim($matches['expression'] ?? $matches[1] ?? '');
 
     return '$this->resolveLocalizedName(' . $call . ')';
 }, $code);
+// applyPattern already handles pattern compilation failures, so $code will
+// always be a string at this point.
 
-if ($code === null) {
-    fwrite(STDERR, "Failed to process RoleController.php\n");
-    exit(1);
-}
+$assignmentPattern = '/(?<target>\$[A-Za-z_\x80-\xff][A-Za-z0-9_\x80-\xff]*(?:\s*(?:->\s*[A-Za-z_\x80-\xff][A-Za-z0-9_\x80-\xff]*|\[[^\]]+\]))*)\s*=\s*' . $jsonDecodePattern . $recursiveCallPattern . '\s*;/i';
+$assignmentFallback = '/(?<target>\$[A-Za-z_\x80-\xff][A-Za-z0-9_\x80-\xff]*(?:\s*(?:->\s*[A-Za-z_\x80-\xff][A-Za-z0-9_\x80-\xff]*|\[[^\]]+\]))*)\s*=\s*' . $jsonDecodePattern . $fallbackCallPattern . '\s*;/i';
 
-$assignmentPattern = '/(?<target>\$[A-Za-z_\x80-\xff][A-Za-z0-9_\x80-\xff]*(?:\s*(?:->\s*[A-Za-z_\x80-\xff][A-Za-z0-9_\x80-\xff]*|\[[^\]]+\]))*)\s*=\s*' . $jsonDecodePattern . '\(((?>[^()]+|(?R))*)\)\s*;/i';
-
-if (preg_match_all($assignmentPattern, $code, $assignmentMatches, PREG_SET_ORDER)) {
+if (matchAll($assignmentPattern, $assignmentFallback, $code, PREG_SET_ORDER, $assignmentMatches)) {
     $expressions = [];
 
     foreach ($assignmentMatches as $match) {
