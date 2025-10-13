@@ -18,8 +18,9 @@ if ($code === false) {
     exit(1);
 }
 
-$pattern = '/(json_decode\(((?>[^()]+|(?R))*)\))\s*(\?->|->)\s*name/';
-$optionalPattern = '/optional\s*\(\s*(json_decode\(((?>[^()]+|(?R))*)\))\s*\)\s*->\s*name/i';
+$chainPattern = '(?:(?:\s*(?:\?->|->)\s*[A-Za-z_\x80-\xff][A-Za-z0-9_\x80-\xff]*)|\s*\[[^\]]+\])*';
+$pattern = '/(?<expression>json_decode\(((?>[^()]+|(?R))*)\)' . $chainPattern . ')\s*(\?->|->)\s*name/';
+$optionalPattern = '/optional\s*\(\s*(?<expression>json_decode\(((?>[^()]+|(?R))*)\)' . $chainPattern . ')\s*\)\s*(\?->|->)\s*name/i';
 $updated = false;
 
 /**
@@ -43,14 +44,14 @@ function buildExpressionPattern(string $expression): string
 
 $code = preg_replace_callback($pattern, function (array $matches) use (&$updated) {
     $updated = true;
-    $call = trim($matches[1]);
+    $call = trim($matches['expression'] ?? $matches[1] ?? '');
 
     return '$this->resolveLocalizedName(' . $call . ')';
 }, $code);
 
 $code = preg_replace_callback($optionalPattern, function (array $matches) use (&$updated) {
     $updated = true;
-    $call = trim($matches[1]);
+    $call = trim($matches['expression'] ?? $matches[1] ?? '');
 
     return '$this->resolveLocalizedName(' . $call . ')';
 }, $code);
@@ -76,7 +77,7 @@ if (preg_match_all($assignmentPattern, $code, $assignmentMatches, PREG_SET_ORDER
     foreach (array_keys($expressions) as $expression) {
         $expressionPattern = buildExpressionPattern($expression);
         $variablePattern = '/(' . $expressionPattern . ')\s*(\?->|->)\s*name/';
-        $optionalVariablePattern = '/optional\s*\(\s*(' . $expressionPattern . ')\s*\)\s*->\s*name/i';
+        $optionalVariablePattern = '/optional\s*\(\s*(' . $expressionPattern . ')\s*\)\s*(\?->|->)\s*name/i';
 
         $replacements = [];
 
