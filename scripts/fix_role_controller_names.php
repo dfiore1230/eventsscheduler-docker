@@ -179,6 +179,21 @@ $code = applyPattern($optionalPattern, $optionalFallback, function (array $match
 // applyPattern already handles pattern compilation failures, so $code will
 // always be a string at this point.
 
+$normalizePattern = '/=\s*(?<call>' . $jsonDecodePattern . $recursiveCallPattern . ')\s*;/i';
+$normalizeFallback = '/=\s*(?<call>' . $jsonDecodePattern . $fallbackCallPattern . ')\s*;/i';
+
+$code = applyPattern($normalizePattern, $normalizeFallback, function (array $matches) use (&$updated): string {
+    $call = trim($matches['call'] ?? $matches[1] ?? '');
+
+    if ($call === '' || stripos($call, 'normalizeNameCarrier') !== false) {
+        return $matches[0];
+    }
+
+    $updated = true;
+
+    return '= $this->normalizeNameCarrier(' . $call . ');';
+}, $code);
+
 $assignmentPattern = '/(?<target>\$[A-Za-z_\x80-\xff][A-Za-z0-9_\x80-\xff]*(?:\s*(?:->\s*[A-Za-z_\x80-\xff][A-Za-z0-9_\x80-\xff]*|\[[^\]]+\]))*)\s*=\s*' . $jsonDecodePattern . $recursiveCallPattern . '\s*;/i';
 $assignmentFallback = '/(?<target>\$[A-Za-z_\x80-\xff][A-Za-z0-9_\x80-\xff]*(?:\s*(?:->\s*[A-Za-z_\x80-\xff][A-Za-z0-9_\x80-\xff]*|\[[^\]]+\]))*)\s*=\s*' . $jsonDecodePattern . $fallbackCallPattern . '\s*;/i';
 
@@ -333,6 +348,73 @@ if (strpos($code, 'function resolveLocalizedName(') === false) {
         }
 
         return null;
+    }
+METHOD;
+
+    $pos = strrpos($code, '}');
+
+    if ($pos === false) {
+        fwrite(STDERR, "Could not locate class closing brace in RoleController.php\n");
+        exit(1);
+    }
+
+    $code = substr($code, 0, $pos) . $method . "\n}";
+}
+
+if (strpos($code, 'function normalizeNameCarrier(') === false) {
+    $method = <<<'METHOD'
+
+    /**
+     * Ensure decoded translation carriers always expose a safe "name" accessor.
+     */
+    private function normalizeNameCarrier($value)
+    {
+        if ($value === null) {
+            return null;
+        }
+
+        if ($value instanceof \JsonSerializable) {
+            $value = $value->jsonSerialize();
+        }
+
+        if ($value instanceof \Traversable) {
+            $value = iterator_to_array($value);
+        }
+
+        if (is_array($value)) {
+            foreach ($value as $key => $item) {
+                $value[$key] = $this->normalizeNameCarrier($item);
+            }
+
+            return $value;
+        }
+
+        if ($value instanceof \stdClass) {
+            foreach (get_object_vars($value) as $key => $item) {
+                $value->{$key} = $this->normalizeNameCarrier($item);
+            }
+
+            $hasName = property_exists($value, 'name');
+            $current = $hasName && is_string($value->name) ? trim($value->name) : ($hasName ? $value->name : null);
+
+            if (!$hasName || !is_string($current) || $current === '') {
+                $resolved = $this->resolveLocalizedName($value);
+
+                if ($resolved !== null) {
+                    $value->name = $resolved;
+                } elseif (!$hasName) {
+                    $value->name = null;
+                } else {
+                    $value->name = is_string($current) ? $current : null;
+                }
+            } else {
+                $value->name = $current;
+            }
+
+            return $value;
+        }
+
+        return $value;
     }
 METHOD;
 
