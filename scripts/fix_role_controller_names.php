@@ -19,8 +19,9 @@ if ($code === false) {
 }
 
 $chainPattern = '(?:(?:\s*(?:\?->|->)\s*[A-Za-z_\x80-\xff][A-Za-z0-9_\x80-\xff]*)|\s*\[[^\]]+\])*';
-$pattern = '/(?<expression>json_decode\(((?>[^()]+|(?R))*)\)' . $chainPattern . ')\s*(\?->|->)\s*name/';
-$optionalPattern = '/optional\s*\(\s*(?<expression>json_decode\(((?>[^()]+|(?R))*)\)' . $chainPattern . ')\s*\)\s*(\?->|->)\s*name/i';
+$jsonDecodePattern = '(?:\\)?json_decode';
+$pattern = '/(?<expression>' . $jsonDecodePattern . '\(((?>[^()]+|(?R))*)\)' . $chainPattern . ')\s*(\?->|->)\s*name/i';
+$optionalPattern = '/optional\s*\(\s*(?<expression>' . $jsonDecodePattern . '\(((?>[^()]+|(?R))*)\)' . $chainPattern . ')\s*\)\s*(\?->|->)\s*name/i';
 $updated = false;
 
 /**
@@ -61,7 +62,7 @@ if ($code === null) {
     exit(1);
 }
 
-$assignmentPattern = '/(?<target>\$[A-Za-z_\x80-\xff][A-Za-z0-9_\x80-\xff]*(?:\s*(?:->\s*[A-Za-z_\x80-\xff][A-Za-z0-9_\x80-\xff]*|\[[^\]]+\]))*)\s*=\s*json_decode\(((?>[^()]+|(?R))*)\)\s*;/';
+$assignmentPattern = '/(?<target>\$[A-Za-z_\x80-\xff][A-Za-z0-9_\x80-\xff]*(?:\s*(?:->\s*[A-Za-z_\x80-\xff][A-Za-z0-9_\x80-\xff]*|\[[^\]]+\]))*)\s*=\s*' . $jsonDecodePattern . '\(((?>[^()]+|(?R))*)\)\s*;/i';
 
 if (preg_match_all($assignmentPattern, $code, $assignmentMatches, PREG_SET_ORDER)) {
     $expressions = [];
@@ -76,7 +77,7 @@ if (preg_match_all($assignmentPattern, $code, $assignmentMatches, PREG_SET_ORDER
 
     foreach (array_keys($expressions) as $expression) {
         $expressionPattern = buildExpressionPattern($expression);
-        $variablePattern = '/(' . $expressionPattern . ')\s*(\?->|->)\s*name/';
+        $variablePattern = '/(' . $expressionPattern . ')\s*(\?->|->)\s*name/i';
         $optionalVariablePattern = '/optional\s*\(\s*(' . $expressionPattern . ')\s*\)\s*(\?->|->)\s*name/i';
 
         $replacements = [];
