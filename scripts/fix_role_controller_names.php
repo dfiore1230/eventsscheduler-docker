@@ -182,6 +182,8 @@ $code = applyPattern($optionalPattern, $optionalFallback, function (array $match
 $assignmentPattern = '/(?<target>\$[A-Za-z_\x80-\xff][A-Za-z0-9_\x80-\xff]*(?:\s*(?:->\s*[A-Za-z_\x80-\xff][A-Za-z0-9_\x80-\xff]*|\[[^\]]+\]))*)\s*=\s*' . $jsonDecodePattern . $recursiveCallPattern . '\s*;/i';
 $assignmentFallback = '/(?<target>\$[A-Za-z_\x80-\xff][A-Za-z0-9_\x80-\xff]*(?:\s*(?:->\s*[A-Za-z_\x80-\xff][A-Za-z0-9_\x80-\xff]*|\[[^\]]+\]))*)\s*=\s*' . $jsonDecodePattern . $fallbackCallPattern . '\s*;/i';
 
+$assignmentMatches = [];
+
 if (matchAll($assignmentPattern, $assignmentFallback, $code, PREG_SET_ORDER, $assignmentMatches)) {
     $expressions = [];
 
