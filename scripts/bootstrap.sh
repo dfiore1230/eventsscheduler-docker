@@ -136,5 +136,10 @@ bootstrap_app() {
   php artisan storage:link || true
 
   chown -R www-data:www-data storage bootstrap/cache database || true
+  chmod -R ug+rwX storage bootstrap/cache database || true
+
+  if [ -d storage/app/public ]; then
+    chmod -R a+rX storage/app/public || true
+  fi
   cd "$orig_dir"
 }
